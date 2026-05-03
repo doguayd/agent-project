@@ -1,0 +1,168 @@
+.DS_Store
+**/.DS_Store
+
+# Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+
+# Android Studio / IntelliJ
+.idea/
+**/.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.vs/
+# Local Android config
+local.properties
+
+# NDK
+.cxx/
+**/.cxx/
+
+# Logs
+*.log
+
+# Mac
+.Spotlight-V100
+.Trashes
+
+
+
+# =============================================
+# ARVIS .gitignore
+# =============================================
+
+# ---- Bağımlılık Dizinleri (Dependencies) ----
+node_modules/
+jspm_packages/
+web_modules/
+bower_components/
+.venv/
+venv/
+env/
+ENV/
+lib/
+bin/
+obj/
+
+# ---- Log Dosyaları ----
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ---- Derleme Çıktıları (Build Outputs) ----
+build/
+dist/
+dist-ssr/
+out/
+
+# ---- Test & Kapsam (Coverage) ----
+coverage/
+*.lcov
+.nyc_output/
+
+# ---- Çalışma Zamanı Verileri (Runtime) ----
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ---- Tanılama Raporları (Diagnostic Reports) ----
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ---- Paket Yöneticisi Dosyaları ----
+*.tgz
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+.pnp.js
+.npm/
+
+# ---- Önbellek Dizinleri (Caches) ----
+.cache/
+.parcel-cache/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# ---- Framework Çıktıları ----
+.next/
+
+# Nuxt.js
+.nuxt/
+
+# VuePress
+.vuepress/dist
+
+# Docusaurus
+.docusaurus/
+
+# ---- Editör & IDE Dosyaları ----
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*.sw?
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.vscode-test/
+
+# ---- İşletim Sistemi Dosyaları ----
+.DS_Store
+Thumbs.db
+*~
+
+# ---- Sunucusuz & Diğer Araçlar ----
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.node_repl_history
+.lock-wscript
+lib-cov/
+.grunt/
+.module-cache/
+chrome-user-data/
+
+# ---- Proje Spesifik Kurallar ----
+.env
+.env.*
+!.env.example
+*.local
+
+
+
+# __benchmarks__/*.pyc
+__benchmarks__/*.pyc
+
+# MCP Master Patterns
+__pycache__/
+.pytest_cache/
+**/*.pyc
+
+
+# React DevTools (Legacy)
+# packages/ dizini mevcut monorepo yapısında bulunmamaktadır.
+

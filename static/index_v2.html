@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Agent System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Variables ─────────────────────────────────────────────────── */
+:root {
+  --bg:          #070711;
+  --bg-surface:  #0d0d1b;
+  --bg-card:     #111120;
+  --bg-elevated: #161630;
+  --bg-input:    #0e0e1e;
+  --border:      #1e1e3a;
+  --border-dim:  #141428;
+  --border-mid:  #28285a;
+
+  --text:        #cdd5f3;
+  --text-dim:    #38385e;
+  --text-mid:    #616899;
+  --text-soft:   #8890be;
+
+  --supervisor:  #5b8ff9;
+  --researcher:  #a78bfa;
+  --coder:       #34d399;
+  --reviewer:    #fbbf24;
+  --tester:      #22d3ee;
+  --debugger:    #f87171;
+  --system:      #64748b;
+
+  --success:     #10b981;
+  --error:       #ef4444;
+  --warning:     #f59e0b;
+
+  --r:  10px;
+  --rs: 6px;
+  --rl: 14px;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-ui:   'Inter', system-ui, sans-serif;
+}
+
+/* ── Reset ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: dark; }
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  grid-template-rows: 52px 1fr 200px;
+  grid-template-areas: "hdr" "main" "term";
+  height: 100vh;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+/* ── Header ─────────────────────────────────────────────────────── */
+header {
+  grid-area: hdr;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(7,7,17,0.96);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+}
+.logo {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+}
+.logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--supervisor);
+  box-shadow: 0 0 8px var(--supervisor);
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+.header-center { display: flex; align-items: center; gap: 10px; }
+.sup-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  border: 1px solid rgba(91,143,249,0.35);
+  background: rgba(91,143,249,0.07);
+  font-family: var(--font-mono); font-size: 11px; color: var(--supervisor);
+}
+.sup-chip .live {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--supervisor); animation: blink 2s infinite;
+}
+.header-right { display: flex; align-items: center; gap: 8px; }
+.hbadge {
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-family: var(--font-mono); border: 1px solid;
+}
+.hbadge.online   { color: var(--success); border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.06); }
+.hbadge.offline  { color: var(--warning); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.06); }
+.hbadge.connected    { color: var(--success); border-color: rgba(16,185,129,0.35); background: rgba(16,185,129,0.05); }
+.hbadge.disconnected { color: var(--error);   border-color: rgba(239,68,68,0.4); }
+.hbadge.neutral  { color: var(--text-mid); border-color: var(--border); }
+
+/* ── Main Layout ────────────────────────────────────────────────── */
+#main {
+  grid-area: main;
+  display: grid;
+  grid-template-columns: 256px 1fr;
+  overflow: hidden;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────── */
+#sidebar {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--bg-surface);
+}
+.sb-section {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.sb-label {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+  letter-spacing: 0.14em; color: var(--text-dim);
+  text-transform: uppercase; margin-bottom: 9px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* Task input */
+textarea {
+  width: 100%; background: var(--bg-input);
+  border: 1px solid var(--border); border-radius: var(--r);
+  color: var(--text); font-family: var(--font-mono); font-size: 12px;
+  padding: 10px 12px; resize: vertical; outline: none;
+  transition: border-color 0.2s; line-height: 1.55;
+}
+textarea::placeholder { color: var(--text-dim); }
+textarea:focus { border-color: rgba(91,143,249,0.45); }
+#task-input { min-height: 84px; }
+#ctx-input  { min-height: 44px; font-size: 11px; color: var(--text-mid); margin-top: 6px; }
+
+/* Buttons */
+.btn {
+  width: 100%; padding: 9px 16px; border-radius: var(--r);
+  border: none; font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-run {
+  background: var(--supervisor); color: #fff; margin-top: 8px;
+  box-shadow: 0 2px 12px rgba(91,143,249,0.25);
+}
+.btn-run:hover:not(:disabled) { background: #4070e8; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(91,143,249,0.35); }
+.btn-run:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-run.running {
+  background: linear-gradient(90deg, #3b5fd8, #5b8ff9, #3b5fd8);
+  background-size: 200%; animation: shimmer 1.8s linear infinite;
+  box-shadow: 0 0 20px rgba(91,143,249,0.3);
+}
+.btn-stop {
+  background: rgba(239,68,68,0.08); color: var(--error);
+  border: 1px solid rgba(239,68,68,0.25); margin-top: 5px; display: none;
+}
+.btn-stop.visible { display: flex; }
+.btn-stop:hover { background: rgba(239,68,68,0.15); }
+
+/* Stats mini grid */
+.stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+}
+.stat-box {
+  background: var(--bg-card); border: 1px solid var(--border-dim);
+  border-radius: var(--rs); padding: 8px 10px;
+}
+.stat-label { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-value { font-family: var(--font-mono); font-size: 14px; font-weight: 600; margin-top: 2px; }
+.stat-value.blue   { color: var(--supervisor); }
+.stat-value.green  { color: var(--success); }
+.stat-value.red    { color: var(--error); }
+
+/* Plan viz */
+#plan-section { display: none; }
+.plan-group { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 3px; }
+.plan-gid { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); padding-top: 3px; min-width: 28px; }
+.plan-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.plan-chip {
+  padding: 2px 7px; border-radius: 10px; font-family: var(--font-mono);
+  font-size: 9px; border: 1px solid; white-space: nowrap;
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 4px;
+}
+.chip-model-badge {
+  font-size: 7.5px; opacity: 0.75; background: rgba(255,255,255,0.07);
+  border-radius: 4px; padding: 0 4px; white-space: nowrap;
+  flex-shrink: 0; max-width: 70px; overflow: hidden; text-overflow: ellipsis;
+}
+.plan-arrow { text-align: left; color: var(--text-dim); font-size: 10px; margin: 2px 0 2px 35px; }
+
+/* Sup selector in sidebar */
+.sup-selector { display: flex; flex-direction: column; gap: 7px; }
+.sup-tabs { display: flex; gap: 3px; }
+.sup-tab {
+  flex: 1; padding: 5px 0; border-radius: var(--rs);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-mid); font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.sup-tab:hover { border-color: var(--border-mid); color: var(--text); }
+.sup-tab.active {
+  border-color: var(--supervisor); color: var(--supervisor);
+  background: rgba(91,143,249,0.09);
+}
+.sup-tab.active.local { border-color: var(--coder); color: var(--coder); background: rgba(52,211,153,0.07); }
+.sup-model-list { display: flex; flex-direction: column; gap: 2px; max-height: 140px; overflow-y: auto; }
+.sup-model-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 7px; border-radius: var(--rs); border: 1px solid transparent;
+  cursor: pointer; transition: all 0.12s;
+}
+.sup-model-item:hover { background: rgba(255,255,255,0.03); border-color: var(--border); }
+.sup-model-item.selected { background: rgba(91,143,249,0.09); border-color: rgba(91,143,249,0.3); }
+.sup-model-item.selected.local { background: rgba(52,211,153,0.07); border-color: rgba(52,211,153,0.28); }
+.sup-model-icon { font-size: 12px; flex-shrink: 0; }
+.sup-model-info { flex: 1; min-width: 0; }
+.sup-model-name { font-family: var(--font-mono); font-size: 10px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sup-model-sub  { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+.sup-apply-btn {
+  width: 100%; padding: 6px; border-radius: var(--rs);
+  border: 1px solid var(--supervisor); background: rgba(91,143,249,0.08);
+  color: var(--supervisor); font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; display: none;
+}
+.sup-apply-btn:hover { background: rgba(91,143,249,0.18); }
+.sup-apply-btn.visible { display: block; }
+.sup-apply-btn.local-mode { border-color: var(--coder); background: rgba(52,211,153,0.07); color: var(--coder); }
+.sup-apply-btn.local-mode:hover { background: rgba(52,211,153,0.14); }
+.sup-loading { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); text-align: center; padding: 8px; display: none; }
+.sup-loading.visible { display: block; }
+
+/* Workspace panel */
+.ws-panel {
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 7px; min-height: 44px; max-height: 130px; overflow-y: auto;
+}
+.ws-empty { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); text-align: center; padding: 8px 0; }
+.ws-file-item {
+  display: flex; align-items: center; gap: 5px; padding: 3px 5px;
+  border-radius: 4px; cursor: pointer; transition: background 0.1s;
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-mid);
+}
+.ws-file-item:hover { background: var(--bg-card); color: var(--text); }
+.ws-file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-project-tag {
+  font-family: var(--font-mono); font-size: 9px; color: var(--coder);
+  padding: 2px 6px; border: 1px solid rgba(52,211,153,0.22); border-radius: 4px;
+  margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ws-upload-btn { cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px; color: var(--text-mid); transition: all 0.1s; }
+.ws-upload-btn:hover { background: var(--bg-card); color: var(--text); }
+
+/* Mila direct */
+.mila-direct {
+  background: var(--bg-input); border: 1px solid rgba(91,143,249,0.22);
+  border-radius: var(--r); padding: 10px 11px; display: flex; flex-direction: column; gap: 7px;
+}
+.mila-label {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+  color: var(--supervisor); letter-spacing: 0.1em;
+  display: flex; align-items: center; gap: 5px;
+}
+.mila-label .pulse { width: 5px; height: 5px; border-radius: 50%; background: var(--supervisor); animation: blink 2s infinite; }
+.mila-history { display: flex; flex-direction: column; gap: 3px; max-height: 100px; overflow-y: auto; }
+.mila-msg { font-family: var(--font-mono); font-size: 10px; line-height: 1.4; padding: 3px 7px; border-radius: 5px; }
+.mila-msg.user   { background: rgba(91,143,249,0.07); border: 1px solid rgba(91,143,249,0.18); color: var(--supervisor); text-align: right; }
+.mila-msg.system { color: var(--text-dim); }
+.mila-direct textarea { min-height: 44px; font-size: 11px; border-color: rgba(91,143,249,0.15); resize: none; }
+.mila-direct textarea:focus { border-color: rgba(91,143,249,0.45); }
+.mila-send-btn {
+  padding: 7px 12px; border-radius: var(--rs); border: 1px solid var(--supervisor);
+  background: rgba(91,143,249,0.09); color: var(--supervisor);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.mila-send-btn:hover:not(:disabled) { background: rgba(91,143,249,0.18); transform: translateY(-1px); }
+.mila-send-btn:disabled { opacity: 0.38; cursor: not-allowed; transform: none; }
+
+/* History items */
+.history-item {
+  padding: 5px 8px; border-radius: var(--rs); font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-mid); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: all 0.12s; border: 1px solid transparent;
+}
+.history-item:hover { background: var(--bg-card); border-color: var(--border); color: var(--text); }
+
+/* ── Content Area ───────────────────────────────────────────────── */
+#content-area {
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Tab bar */
+.tab-bar {
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 16px; border-bottom: 1px solid var(--border);
+  background: var(--bg-surface); flex-shrink: 0;
+  height: 42px;
+}
+.tab-btn {
+  padding: 0 16px; height: 42px; border: none; background: transparent;
+  color: var(--text-mid); font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; position: relative;
+  display: flex; align-items: center; gap: 6px;
+}
+.tab-btn::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+  height: 2px; background: var(--supervisor); border-radius: 1px;
+  transform: scaleX(0); transition: transform 0.2s ease;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--text); }
+.tab-btn.active::after { transform: scaleX(1); }
+.tab-icon { font-size: 13px; }
+
+/* Tab panels */
+.tab-panel { display: none; flex: 1; overflow: hidden; }
+.tab-panel.active { display: flex; flex-direction: column; }
+
+/* ── Pipeline tab ───────────────────────────────────────────────── */
+#panel-pipeline {
+  overflow-y: auto; padding: 14px; flex-direction: column; gap: 10px;
+}
+
+/* Supervisor card */
+.supervisor-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--rl); padding: 16px 18px; position: relative;
+  overflow: hidden; transition: border-color 0.3s, box-shadow 0.3s;
+  flex-shrink: 0;
+}
+.supervisor-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--supervisor), transparent);
+  opacity: 0.7; transition: opacity 0.3s;
+}
+.supervisor-card[data-status="running"] {
+  border-color: rgba(91,143,249,0.4);
+  box-shadow: 0 0 0 1px rgba(91,143,249,0.1), 0 0 24px rgba(91,143,249,0.12);
+  animation: sup-pulse 3s ease-in-out infinite;
+}
+.supervisor-card[data-status="running"]::before { opacity: 1; }
+.supervisor-card[data-status="done"]  { border-color: rgba(16,185,129,0.2); }
+.supervisor-card[data-status="error"] { border-color: rgba(239,68,68,0.3); }
+
+/* Agent grid */
+#agent-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; flex-shrink: 0; }
+
+/* Agent cards */
+.agent-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 15px; position: relative; overflow: hidden;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.agent-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--ac, var(--border)); opacity: 0.4; transition: opacity 0.25s;
+}
+.agent-card[data-agent="researcher"] { --ac: var(--researcher); --glow: rgba(167,139,250,0.1); }
+.agent-card[data-agent="coder"]      { --ac: var(--coder);      --glow: rgba(52,211,153,0.1); }
+.agent-card[data-agent="reviewer"]   { --ac: var(--reviewer);   --glow: rgba(251,191,36,0.1); }
+.agent-card[data-agent="tester"]     { --ac: var(--tester);     --glow: rgba(34,211,238,0.1); }
+.agent-card[data-agent="debugger"]   { --ac: var(--debugger);   --glow: rgba(248,113,113,0.1); }
+
+.agent-card[data-status="running"] {
+  border-color: var(--ac); box-shadow: 0 0 0 1px var(--glow), 0 0 18px var(--glow);
+}
+.agent-card[data-status="running"]::before { opacity: 1; }
+.agent-card[data-status="done"]  { border-color: rgba(16,185,129,0.2); }
+.agent-card[data-status="error"] { border-color: rgba(239,68,68,0.3); }
+
+/* Card header */
+.card-header { display: flex; align-items: center; gap: 10px; }
+.agent-avatar {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  transition: background 0.25s, border-color 0.25s;
+}
+[data-status="running"] .agent-avatar { background: var(--glow); border-color: var(--ac); }
+.supervisor-card .agent-avatar { background: rgba(91,143,249,0.08); border-color: rgba(91,143,249,0.3); }
+
+.agent-meta { flex: 1; min-width: 0; }
+.agent-name { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text); }
+.agent-name span { font-weight: 300; color: var(--text-dim); font-size: 11px; }
+.agent-role { font-size: 10px; color: var(--text-mid); font-family: var(--font-mono); margin-top: 1px; }
+
+.card-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.status-badge {
+  font-family: var(--font-mono); font-size: 9px; padding: 2px 8px;
+  border-radius: 10px; border: 1px solid var(--border); color: var(--text-dim);
+  white-space: nowrap; transition: all 0.2s;
+}
+[data-status="running"] .status-badge {
+  color: #fff; background: var(--ac, var(--supervisor));
+  border-color: var(--ac, var(--supervisor));
+  box-shadow: 0 0 6px var(--glow, transparent);
+}
+.supervisor-card[data-status="running"] .status-badge {
+  background: var(--supervisor); border-color: var(--supervisor);
+}
+[data-status="done"]   .status-badge { color: var(--success); border-color: rgba(16,185,129,0.35); background: rgba(16,185,129,0.07); }
+[data-status="error"]  .status-badge { color: var(--error);   border-color: rgba(239,68,68,0.35);  background: rgba(239,68,68,0.07); }
+[data-status="queued"] .status-badge { color: var(--text-mid); border-color: rgba(107,125,179,0.25); }
+
+.elapsed-badge {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
+  transition: color 0.25s; min-width: 36px; text-align: right;
+}
+[data-status="running"] .elapsed-badge { color: var(--ac, var(--supervisor)); }
+.supervisor-card[data-status="running"] .elapsed-badge { color: var(--supervisor); }
+
+/* Card body */
+.card-body { margin-top: 10px; }
+.persona-quote {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); font-style: italic;
+  margin-bottom: 8px; line-height: 1.5; border-left: 2px solid var(--border); padding-left: 8px;
+}
+[data-status="running"] .persona-quote,
+[data-status="done"]    .persona-quote { display: none; }
+.task-desc {
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--text-mid);
+  margin-bottom: 7px; display: none; line-height: 1.45;
+}
+[data-status="running"] .task-desc,
+[data-status="done"]    .task-desc { display: block; }
+
+.output-stream {
+  font-family: var(--font-mono); font-size: 11px; color: #9ccfd8;
+  background: rgba(0,0,0,0.3); border: 1px solid var(--border-dim); border-radius: var(--rs);
+  padding: 9px 11px; max-height: 300px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-word; line-height: 1.6;
+  display: none; transition: max-height 0.3s ease;
+}
+.output-stream.expanded { max-height: 640px; }
+[data-status="running"] .output-stream,
+[data-status="done"]    .output-stream { display: block; }
+
+/* Rendered output */
+.output-rendered { display: none; font-size: 12px; line-height: 1.7; color: var(--text); }
+[data-status="done"] .output-rendered { display: block; }
+[data-status="done"] .output-stream.raw-hidden { display: none; }
+.output-rendered h2 { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text); margin: 12px 0 4px; padding-bottom: 3px; border-bottom: 1px solid var(--border-dim); }
+.output-rendered h3 { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-mid); margin: 10px 0 3px; }
+.output-rendered p  { color: var(--text-mid); margin-bottom: 6px; }
+.output-rendered strong { color: var(--text); }
+.output-rendered code { font-family: var(--font-mono); font-size: 10.5px; background: rgba(0,0,0,0.4); padding: 1px 5px; border-radius: 3px; color: #9ccfd8; }
+.output-rendered ul, .output-rendered ol { padding-left: 18px; margin-bottom: 6px; color: var(--text-mid); font-size: 12px; }
+.output-rendered li { margin-bottom: 2px; }
+
+/* Code block */
+.code-block { position: relative; background: var(--bg); border: 1px solid var(--border-dim); border-radius: var(--rs); margin: 8px 0; overflow: hidden; }
+.code-block-header { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-dim); }
+.code-lang { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; }
+.code-copy-btn {
+  font-family: var(--font-mono); font-size: 9px; padding: 2px 7px; border-radius: 4px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; transition: all 0.15s;
+}
+.code-copy-btn:hover { border-color: var(--text-mid); color: var(--text); }
+.code-block pre { margin: 0; padding: 10px 12px; overflow-x: auto; font-family: var(--font-mono); font-size: 11px; line-height: 1.55; color: #9ccfd8; white-space: pre; }
+
+/* Card footer */
+.card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.card-actions { display: flex; gap: 5px; align-items: center; }
+.card-action-btn {
+  font-family: var(--font-mono); font-size: 9px; padding: 2px 8px; border-radius: 4px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+  cursor: pointer; transition: all 0.15s; display: none;
+}
+[data-status="done"] .card-action-btn { display: inline-block; }
+.card-action-btn:hover { border-color: var(--text-mid); color: var(--text); background: rgba(255,255,255,0.03); }
+.model-tag {
+  font-family: var(--font-mono); font-size: 8.5px; color: var(--text-dim);
+  padding: 1px 6px; border: 1px solid var(--border-dim); border-radius: 8px;
+}
+
+/* Verdict */
+.verdict-badge { font-family: var(--font-mono); font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 700; display: none; }
+.verdict-badge.approved { color: var(--success); background: rgba(16,185,129,0.09); border: 1px solid rgba(16,185,129,0.32); }
+.verdict-badge.changes  { color: var(--warning); background: rgba(245,158,11,0.09); border: 1px solid rgba(245,158,11,0.32); }
+.verdict-badge.rejected { color: var(--error);   background: rgba(239,68,68,0.09);  border: 1px solid rgba(239,68,68,0.32); }
+[data-status="done"] .verdict-badge { display: inline-block; }
+
+.revision-bar {
+  display: none; align-items: center; gap: 7px; padding: 5px 9px;
+  background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.18);
+  border-radius: var(--rs); margin-top: 7px; font-family: var(--font-mono); font-size: 10px; color: var(--warning);
+}
+.revision-bar.visible { display: flex; }
+
+/* ── Settings Tab ───────────────────────────────────────────────── */
+#panel-settings {
+  overflow-y: auto; padding: 18px; flex-direction: column; gap: 20px;
+}
+.settings-section-title {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  color: var(--text-mid); letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.settings-section-title::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.agent-settings-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
+
+.agent-cfg-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px; position: relative; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.agent-cfg-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--cfg-color, var(--border)); border-radius: 0 0 0 var(--r);
+}
+.agent-cfg-card[data-agent="researcher"] { --cfg-color: var(--researcher); }
+.agent-cfg-card[data-agent="coder"]      { --cfg-color: var(--coder); }
+.agent-cfg-card[data-agent="reviewer"]   { --cfg-color: var(--reviewer); }
+.agent-cfg-card[data-agent="tester"]     { --cfg-color: var(--tester); }
+.agent-cfg-card[data-agent="debugger"]   { --cfg-color: var(--debugger); }
+.agent-cfg-card:hover { border-color: var(--cfg-color); }
+
+.cfg-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.cfg-avatar { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); }
+.cfg-name { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text); }
+.cfg-role { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+.cfg-saved-badge {
+  margin-left: auto; font-family: var(--font-mono); font-size: 9px;
+  padding: 2px 7px; border-radius: 8px; background: rgba(16,185,129,0.1);
+  color: var(--success); border: 1px solid rgba(16,185,129,0.3);
+  opacity: 0; transition: opacity 0.3s;
+}
+.cfg-saved-badge.show { opacity: 1; }
+
+.cfg-field { margin-bottom: 11px; }
+.cfg-field-label {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+  color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between;
+}
+.cfg-field-label span { color: var(--text-mid); font-size: 10px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+
+.cfg-select {
+  width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--rs); color: var(--text); font-family: var(--font-mono);
+  font-size: 11px; padding: 7px 10px; outline: none; cursor: pointer;
+  transition: border-color 0.2s; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23616899' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+  padding-right: 28px;
+}
+.cfg-select:focus { border-color: rgba(91,143,249,0.4); }
+
+/* Temperature slider */
+.temp-row { display: flex; align-items: center; gap: 8px; }
+.temp-slider {
+  flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px;
+  background: var(--border); outline: none; cursor: pointer;
+}
+.temp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--cfg-color, var(--supervisor));
+  box-shadow: 0 0 6px var(--cfg-color, var(--supervisor));
+  cursor: pointer; transition: transform 0.15s;
+}
+.temp-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.temp-val {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-mid);
+  min-width: 28px; text-align: right;
+}
+
+.cfg-apply-btn {
+  width: 100%; padding: 7px; border-radius: var(--rs);
+  border: 1px solid var(--cfg-color, var(--border));
+  background: rgba(91,143,249,0.06); color: var(--cfg-color, var(--text));
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; margin-top: 12px;
+}
+.cfg-apply-btn:hover { background: rgba(255,255,255,0.07); }
+.cfg-apply-btn:active { transform: scale(0.98); }
+
+/* Global settings */
+.global-settings-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.global-cfg-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; }
+.global-cfg-title { font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-soft); margin-bottom: 8px; }
+.cfg-input {
+  width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--rs); color: var(--text); font-family: var(--font-mono);
+  font-size: 11px; padding: 6px 9px; outline: none; transition: border-color 0.2s;
+}
+.cfg-input:focus { border-color: rgba(91,143,249,0.4); }
+.cfg-hint { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+
+/* ── History Tab ────────────────────────────────────────────────── */
+#panel-history {
+  overflow-y: auto; padding: 18px; flex-direction: column; gap: 8px;
+}
+.history-session {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px; cursor: pointer;
+  transition: all 0.15s; display: flex; align-items: flex-start; gap: 12px;
+}
+.history-session:hover { border-color: var(--border-mid); background: var(--bg-elevated); }
+.hs-num {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  padding-top: 1px; min-width: 28px; text-align: right;
+}
+.hs-body { flex: 1; min-width: 0; }
+.hs-goal { font-family: var(--font-mono); font-size: 12px; color: var(--text); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hs-meta { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); }
+.hs-rerun {
+  font-family: var(--font-mono); font-size: 9px; padding: 3px 9px;
+  border: 1px solid var(--border); border-radius: var(--rs); background: transparent;
+  color: var(--text-dim); cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  margin-top: 1px;
+}
+.hs-rerun:hover { border-color: var(--supervisor); color: var(--supervisor); background: rgba(91,143,249,0.08); }
+.hs-empty { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); text-align: center; padding: 40px 0; }
+
+/* ── Terminal ───────────────────────────────────────────────────── */
+#terminal {
+  grid-area: term; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; background: var(--bg);
+}
+.term-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 14px; border-bottom: 1px solid var(--border-dim); flex-shrink: 0;
+}
+.term-title {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+  color: var(--text-dim); letter-spacing: 0.12em;
+  display: flex; align-items: center; gap: 6px;
+}
+.term-title .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); animation: blink 1.5s infinite; }
+.term-actions { display: flex; gap: 6px; }
+.term-btn {
+  font-family: var(--font-mono); font-size: 9px; padding: 2px 8px;
+  border-radius: 4px; border: 1px solid var(--border); background: transparent;
+  color: var(--text-dim); cursor: pointer; transition: all 0.15s;
+}
+.term-btn:hover { border-color: var(--text-mid); color: var(--text); }
+#term-log { flex: 1; overflow-y: auto; padding: 5px 14px; font-family: var(--font-mono); font-size: 10.5px; line-height: 1.6; }
+.log-line { display: flex; gap: 8px; animation: slide-in 0.12s ease; padding: 0; }
+.log-ts    { color: var(--text-dim); flex-shrink: 0; font-size: 10px; }
+.log-agent { flex-shrink: 0; width: 76px; font-weight: 600; font-size: 10px; }
+.log-msg   { color: var(--text-mid); word-break: break-word; }
+.log-msg.stream  { color: #7ab8c4; opacity: 0.8; }
+.log-msg.success { color: var(--success); }
+.log-msg.error   { color: var(--error); }
+.log-msg.info    { color: var(--text); }
+.log-agent.supervisor { color: var(--supervisor); }
+.log-agent.researcher { color: var(--researcher); }
+.log-agent.coder      { color: var(--coder); }
+.log-agent.reviewer   { color: var(--reviewer); }
+.log-agent.tester     { color: var(--tester); }
+.log-agent.debugger   { color: var(--debugger); }
+.log-agent.system     { color: var(--system); }
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+@keyframes pulse-dot { 0%,100%{box-shadow:0 0 6px var(--supervisor)} 50%{box-shadow:0 0 14px var(--supervisor)} }
+@keyframes shimmer { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+@keyframes slide-in { from{opacity:0;transform:translateY(2px)} to{opacity:1;transform:translateY(0)} }
+@keyframes sup-pulse { 0%,100%{box-shadow:0 0 16px rgba(91,143,249,0.1)} 50%{box-shadow:0 0 30px rgba(91,143,249,0.22)} }
+@keyframes spin { to{transform:rotate(360deg)} }
+.spinner {
+  display:inline-block; width:12px; height:12px;
+  border:2px solid rgba(255,255,255,0.18); border-top-color:#fff;
+  border-radius:50%; animation:spin 0.7s linear infinite;
+}
+@keyframes fade-in { from{opacity:0} to{opacity:1} }
+
+/* ── Modals ─────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: fade-in 0.15s ease;
+}
+.modal-box {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--rl); width: 100%; max-width: 900px;
+  max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.modal-title { font-family: var(--font-mono); font-size: 13px; color: var(--text); font-weight: 600; }
+.modal-actions { display: flex; gap: 8px; align-items: center; }
+.modal-close-btn { font-size: 20px; background: none; border: none; color: var(--text-dim); cursor: pointer; line-height: 1; padding: 2px 5px; }
+.modal-close-btn:hover { color: var(--text); }
+.modal-copy-btn {
+  font-family: var(--font-mono); font-size: 10px; padding: 4px 12px;
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--rs);
+  color: var(--text-mid); cursor: pointer; transition: all 0.15s;
+}
+.modal-copy-btn:hover { border-color: var(--border-mid); color: var(--text); }
+
+@media (max-width: 960px) {
+  #agent-grid { grid-template-columns: 1fr; }
+  .agent-settings-grid { grid-template-columns: 1fr; }
+  .global-settings-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Agent System
+  </div>
+
+  <div class="header-center">
+    <div class="sup-chip" id="sup-chip">
+      <div class="live"></div>
+      <span id="sup-label">Bağlanıyor...</span>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <span class="hbadge neutral" id="net-badge">🌐 —</span>
+    <span class="hbadge neutral" id="ws-badge">● Bağlanıyor</span>
+  </div>
+</header>
+
+<!-- ══ MAIN ════════════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- ── Sidebar ──────────────────────────────────────────────── -->
+  <aside id="sidebar">
+
+    <!-- Task -->
+    <div class="sb-section">
+      <div class="sb-label">Yeni Görev</div>
+      <textarea id="task-input" placeholder="Ne yapmamı istersin?&#10;&#10;Örnek: Flask REST API yaz, JWT auth ile kullanıcı yönetimi ekle"></textarea>
+      <textarea id="ctx-input" placeholder="Ek bağlam (isteğe bağlı)..."></textarea>
+      <button class="btn btn-run" id="run-btn" onclick="sendRun()">
+        <span id="run-icon">▶</span>
+        <span id="run-text">Çalıştır</span>
+      </button>
+      <button class="btn btn-stop" id="stop-btn" onclick="sendStop()">◼ Durdur</button>
+    </div>
+
+    <!-- Plan -->
+    <div class="sb-section" id="plan-section">
+      <div class="sb-label">Yürütme Planı</div>
+      <div id="plan-viz"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="sb-section">
+      <div class="sb-label">Oturum</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-label">Süre</div><div class="stat-value blue" id="s-elapsed">—</div></div>
+        <div class="stat-box"><div class="stat-label">Başarı</div><div class="stat-value green" id="s-success">—</div></div>
+        <div class="stat-box"><div class="stat-label">Hata</div><div class="stat-value red" id="s-fail">—</div></div>
+        <div class="stat-box"><div class="stat-label">Geçmiş</div><div class="stat-value" id="s-memory">—</div></div>
+      </div>
+    </div>
+
+    <!-- Supervisor -->
+    <div class="sb-section">
+      <div class="sb-label">Supervisor Modeli</div>
+      <div class="sup-selector">
+        <div class="sup-tabs">
+          <button class="sup-tab active" id="tab-cloud" onclick="switchSupTab('cloud')">🌐 Bulut</button>
+          <button class="sup-tab local"  id="tab-local" onclick="switchSupTab('local')">💻 Yerel</button>
+        </div>
+        <div class="sup-loading" id="sup-loading">Yükleniyor...</div>
+        <div class="sup-model-list" id="sup-model-list"></div>
+        <button class="sup-apply-btn" id="sup-apply-btn" onclick="applySupvisor()">Supervisor'ı Değiştir</button>
+      </div>
+    </div>
+
+    <!-- Mila -->
+    <div class="sb-section">
+      <div class="sb-label">Mila'ya Yaz</div>
+      <div class="mila-direct">
+        <div class="mila-label"><div class="pulse"></div>Doğrudan Supervisor</div>
+        <div class="mila-history" id="mila-history"></div>
+        <textarea id="mila-input" placeholder="Mila'ya talimat ver..."></textarea>
+        <button class="mila-send-btn" id="mila-send-btn" onclick="sendMilaMessage()">🧠 Gönder</button>
+      </div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="sb-section">
+      <div class="sb-label">
+        <span>Workspace</span>
+        <label class="ws-upload-btn" title="Dosya yükle">📎<input type="file" id="ws-file-input" multiple onchange="uploadFiles(this)" style="display:none"></label>
+      </div>
+      <div class="ws-panel" id="ws-panel">
+        <div class="ws-empty" id="ws-empty">Henüz dosya yok</div>
+        <div id="ws-file-list"></div>
+      </div>
+    </div>
+
+    <!-- History (sidebar quick) -->
+    <div class="sb-section">
+      <div class="sb-label">Son Görevler</div>
+      <div id="history-list"></div>
+    </div>
+
+  </aside>
+
+  <!-- ── Content Area ──────────────────────────────────────────── -->
+  <div id="content-area">
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('pipeline')" id="tab-btn-pipeline">
+        <span class="tab-icon">⚡</span> Pipeline
+      </button>
+      <button class="tab-btn" onclick="switchTab('settings')" id="tab-btn-settings">
+        <span class="tab-icon">⚙</span> Ayarlar
+      </button>
+      <button class="tab-btn" onclick="switchTab('history')" id="tab-btn-history">
+        <span class="tab-icon">📋</span> Geçmiş
+      </button>
+    </div>
+
+    <!-- ── Pipeline Panel ──────────────────────────────────────── -->
+    <div class="tab-panel active" id="panel-pipeline">
+
+      <!-- Supervisor Card -->
+      <div class="supervisor-card" id="card-supervisor" data-agent="supervisor" data-status="idle">
+        <div class="card-header">
+          <div class="agent-avatar">🧠</div>
+          <div class="agent-meta">
+            <div class="agent-name">Mila <span>— Supervisor</span></div>
+            <div class="agent-role" id="sup-model-label">Bağlanıyor...</div>
+          </div>
+          <div class="card-header-right">
+            <span class="elapsed-badge" id="elapsed-supervisor"></span>
+            <span class="status-badge" id="status-supervisor">Bekliyor</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="persona-quote">"Karmaşıklığı parçalara ayır. Her parçayı doğru uzmana ver. Sonucu değerlendir."</div>
+          <div class="task-desc" id="task-supervisor"></div>
+          <pre class="output-stream" id="output-supervisor"></pre>
+        </div>
+      </div>
+
+      <!-- Agent Grid -->
+      <div id="agent-grid">
+
+        <!-- Aria / Researcher -->
+        <div class="agent-card" id="card-researcher" data-agent="researcher" data-status="idle">
+          <div class="card-header">
+            <div class="agent-avatar">🔬</div>
+            <div class="agent-meta">
+              <div class="agent-name">Aria <span>— Researcher</span></div>
+              <div class="agent-role" id="role-researcher">—</div>
+            </div>
+            <div class="card-header-right">
+              <span class="elapsed-badge" id="elapsed-researcher"></span>
+              <span class="status-badge" id="status-researcher">Bekliyor</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="persona-quote">"Cevap vermeden önce her şeyi öğrenirim."</div>
+            <div class="task-desc" id="task-researcher"></div>
+            <pre class="output-stream" id="output-researcher"></pre>
+            <div class="output-rendered" id="rendered-researcher"></div>
+            <div class="card-footer">
+              <div class="card-actions">
+                <button class="card-action-btn" onclick="toggleExpand('researcher')" id="expand-researcher">⤢ Genişlet</button>
+                <button class="card-action-btn" onclick="openOutputModal('researcher')">📄 Tam Görünüm</button>
+                <button class="card-action-btn" onclick="copyOutput('researcher')">📋 Kopyala</button>
+              </div>
+              <span class="model-tag" id="mtag-researcher"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kenji / Coder -->
+        <div class="agent-card" id="card-coder" data-agent="coder" data-status="idle">
+          <div class="card-header">
+            <div class="agent-avatar">💻</div>
+            <div class="agent-meta">
+              <div class="agent-name">Kenji <span>— Coder</span></div>
+              <div class="agent-role" id="role-coder">—</div>
+            </div>
+            <div class="card-header-right">
+              <span class="elapsed-badge" id="elapsed-coder"></span>
+              <span class="status-badge" id="status-coder">Bekliyor</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="persona-quote">"Çalışan kod değil, güzel ve çalışan kod."</div>
+            <div class="task-desc" id="task-coder"></div>
+            <pre class="output-stream" id="output-coder"></pre>
+            <div class="output-rendered" id="rendered-coder"></div>
+            <div class="card-footer">
+              <div class="card-actions">
+                <button class="card-action-btn" onclick="toggleExpand('coder')" id="expand-coder">⤢ Genişlet</button>
+                <button class="card-action-btn" onclick="openOutputModal('coder')">📄 Tam Görünüm</button>
+                <button class="card-action-btn" onclick="copyOutput('coder')">📋 Kopyala</button>
+              </div>
+              <span class="model-tag" id="mtag-coder"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rex / Reviewer -->
+        <div class="agent-card" id="card-reviewer" data-agent="reviewer" data-status="idle">
+          <div class="card-header">
+            <div class="agent-avatar">🔍</div>
+            <div class="agent-meta">
+              <div class="agent-name">Rex <span>— Reviewer</span></div>
+              <div class="agent-role" id="role-reviewer">—</div>
+            </div>
+            <div class="card-header-right">
+              <span class="verdict-badge" id="verdict-reviewer"></span>
+              <span class="elapsed-badge" id="elapsed-reviewer"></span>
+              <span class="status-badge" id="status-reviewer">Bekliyor</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="persona-quote">"Bir bug bile geçemez gözümden."</div>
+            <div class="task-desc" id="task-reviewer"></div>
+            <div class="revision-bar" id="revision-bar">🔄 <span id="revision-text"></span></div>
+            <pre class="output-stream" id="output-reviewer"></pre>
+            <div class="output-rendered" id="rendered-reviewer"></div>
+            <div class="card-footer">
+              <div class="card-actions">
+                <button class="card-action-btn" onclick="toggleExpand('reviewer')" id="expand-reviewer">⤢ Genişlet</button>
+                <button class="card-action-btn" onclick="openOutputModal('reviewer')">📄 Tam Görünüm</button>
+                <button class="card-action-btn" onclick="copyOutput('reviewer')">📋 Kopyala</button>
+              </div>
+              <span class="model-tag" id="mtag-reviewer"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zara / Tester -->
+        <div class="agent-card" id="card-tester" data-agent="tester" data-status="idle">
+          <div class="card-header">
+            <div class="agent-avatar">🧪</div>
+            <div class="agent-meta">
+              <div class="agent-name">Zara <span>— Tester</span></div>
+              <div class="agent-role" id="role-tester">—</div>
+            </div>
+            <div class="card-header-right">
+              <span class="elapsed-badge" id="elapsed-tester"></span>
+              <span class="status-badge" id="status-tester">Bekliyor</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="persona-quote">"Her şeyi kırmaya çalışırım; dayanamayan geçemez."</div>
+            <div class="task-desc" id="task-tester"></div>
+            <pre class="output-stream" id="output-tester"></pre>
+            <div class="output-rendered" id="rendered-tester"></div>
+            <div class="card-footer">
+              <div class="card-actions">
+                <button class="card-action-btn" onclick="toggleExpand('tester')" id="expand-tester">⤢ Genişlet</button>
+                <button class="card-action-btn" onclick="openOutputModal('tester')">📄 Tam Görünüm</button>
+                <button class="card-action-btn" onclick="copyOutput('tester')">📋 Kopyala</button>
+              </div>
+              <span class="model-tag" id="mtag-tester"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Neo / Debugger -->
+        <div class="agent-card" id="card-debugger" data-agent="debugger" data-status="idle">
+          <div class="card-header">
+            <div class="agent-avatar">🐛</div>
+            <div class="agent-meta">
+              <div class="agent-name">Neo <span>— Debugger</span></div>
+              <div class="agent-role" id="role-debugger">—</div>
+            </div>
+            <div class="card-header-right">
+              <span class="elapsed-badge" id="elapsed-debugger"></span>
+              <span class="status-badge" id="status-debugger">Bekliyor</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="persona-quote">"Hatanın sebebini bulmak, düzeltmekten zordur."</div>
+            <div class="task-desc" id="task-debugger"></div>
+            <pre class="output-stream" id="output-debugger"></pre>
+            <div class="output-rendered" id="rendered-debugger"></div>
+            <div class="card-footer">
+              <div class="card-actions">
+                <button class="card-action-btn" onclick="toggleExpand('debugger')" id="expand-debugger">⤢ Genişlet</button>
+                <button class="card-action-btn" onclick="openOutputModal('debugger')">📄 Tam Görünüm</button>
+                <button class="card-action-btn" onclick="copyOutput('debugger')">📋 Kopyala</button>
+              </div>
+              <span class="model-tag" id="mtag-debugger"></span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /agent-grid -->
+    </div><!-- /panel-pipeline -->
+
+    <!-- ── Settings Panel ─────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="settings-section-title">Ajan Modelleri & Parametreler</div>
+      <div class="agent-settings-grid" id="agent-settings-grid">
+        <!-- Filled by JS -->
+      </div>
+      <div class="settings-section-title" style="margin-top:8px">Global Ayarlar</div>
+      <div class="global-settings-grid">
+        <div class="global-cfg-box">
+          <div class="global-cfg-title">Coder Bağlam Limiti</div>
+          <input class="cfg-input" type="number" id="gcfg-coder-ctx" value="3000" min="500" max="20000" step="500">
+          <div class="cfg-hint">Coder'a gönderilen max karakter.<br>Büyük = yavaş prefill.</div>
+        </div>
+        <div class="global-cfg-box">
+          <div class="global-cfg-title">Researcher Bağlam Limiti</div>
+          <input class="cfg-input" type="number" id="gcfg-researcher-ctx" value="4000" min="500" max="20000" step="500">
+          <div class="cfg-hint">Researcher sonucunun max karakter boyutu.</div>
+        </div>
+        <div class="global-cfg-box">
+          <div class="global-cfg-title">Max Çıktı (karakter)</div>
+          <input class="cfg-input" type="number" id="gcfg-max-output" value="12000" min="2000" max="60000" step="1000">
+          <div class="cfg-hint">Tek ajan çıktısının izin verilen max boyutu.</div>
+        </div>
+      </div>
+    </div><!-- /panel-settings -->
+
+    <!-- ── History Panel ──────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-history">
+      <div class="hs-empty" id="hs-empty">Henüz geçmiş görev yok.</div>
+      <div id="history-full-list"></div>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main -->
+
+<!-- ══ TERMINAL ═════════════════════════════════════════════════════ -->
+<div id="terminal">
+  <div class="term-header">
+    <div class="term-title"><div class="dot"></div>SİSTEM LOGU</div>
+    <div class="term-actions">
+      <button class="term-btn" onclick="clearLog()">Temizle</button>
+      <button class="term-btn" onclick="copyLog()">Kopyala</button>
+    </div>
+  </div>
+  <div id="term-log"></div>
+</div>
+
+<!-- ══ JAVASCRIPT ════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Constants ──────────────────────────────────────────────────────
+const AGENTS = ['supervisor','researcher','coder','reviewer','tester','debugger'];
+const WORKER_AGENTS = ['researcher','coder','reviewer','tester','debugger'];
+const AGENT_META = {
+  supervisor: { name:'Mila',  emoji:'🧠', role:'Supervisor' },
+  researcher: { name:'Aria',  emoji:'🔬', role:'Researcher' },
+  coder:      { name:'Kenji', emoji:'💻', role:'Coder' },
+  reviewer:   { name:'Rex',   emoji:'🔍', role:'Reviewer' },
+  tester:     { name:'Zara',  emoji:'🧪', role:'Tester' },
+  debugger:   { name:'Neo',   emoji:'🐛', role:'Debugger' },
+};
+
+// ── State ──────────────────────────────────────────────────────────
+const state = {
+  ws:        null,
+  connected: false,
+  running:   false,
+  session:   { start:0, success:0, fail:0 },
+  agents:    Object.fromEntries(AGENTS.map(a => [a, {
+    status:'idle', output:'', task:'', lineBuffer:'', startMs:0, timer:null, model:''
+  }])),
+  history:   [],  // { goal, context, ts, success, fail, duration }
+};
+
+const settingsState = {
+  availableModels: [],   // from /supervisor/models → local[]
+  agentCfg: {},          // { researcher: {provider, model, temperature}, ... }
+};
+
+// ── WebSocket ──────────────────────────────────────────────────────
+function connect() {
+  const ws = new WebSocket(`ws://${location.host}/ws`);
+  state.ws = ws;
+  ws.onopen    = () => { state.connected = true; setBadge('ws-badge','● Bağlandı','connected'); log('system','WebSocket bağlandı.','info'); };
+  ws.onclose   = () => { state.connected = false; setBadge('ws-badge','● Kesildi','disconnected'); log('system','Bağlantı kesildi — yeniden deneniyor...','error'); setTimeout(connect, 3000); };
+  ws.onerror   = () => { setBadge('ws-badge','● Hata','disconnected'); };
+  ws.onmessage = e => handleEvent(JSON.parse(e.data));
+}
+
+// ── Event Handler ──────────────────────────────────────────────────
+function handleEvent(ev) {
+  const { type, data = {} } = ev;
+  switch (type) {
+    case 'ready':             onReady(data); break;
+    case 'session.start':     onSessionStart(data); break;
+    case 'plan.created':      onPlanCreated(data); break;
+    case 'group.start':       log('system',`Paralel Grup ${data.group_id} (${data.count} görev)`,'info'); break;
+    case 'supervisor.plan_start':   setAgent('supervisor','running','Plan oluşturuluyor...'); break;
+    case 'supervisor.review_start': setAgent('supervisor','running','Sonuçlar değerlendiriliyor...'); clearOutput('supervisor'); break;
+    case 'supervisor.stream': appendOutput('supervisor', data.chunk||''); break;
+    case 'supervisor.done':   setAgent('supervisor','done','Değerlendirme tamamlandı'); break;
+    case 'task.start':        setAgent(data.agent_type,'running',data.description||''); log(data.agent_type,`▶ ${data.description||''}`,'info'); break;
+    case 'task.stream':       appendOutput(data.agent_type, data.chunk||''); break;
+    case 'task.complete':     onTaskComplete(data); break;
+    case 'task.model_override': onModelOverride(data); break;
+    case 'revision.start':    showRevisionBar(data.iteration, data.verdict); break;
+    case 'neo.triggered':     log('debugger',`🐛 Neo devreye girdi — ${data.critical_count} kritik hata`,'error'); break;
+    case 'mila.message_received': addMilaHistory('system',`Mesaj alındı: "${data.message}"`); log('supervisor',`📨 ${data.message}`,'info'); setRunning(true); break;
+    case 'task.error':        setAgent(data.agent_type||'system','error',data.error||''); log(data.agent_type||'system',`✗ ${data.error}`,'error'); break;
+    case 'session.complete':  onSessionComplete(data); break;
+    case 'workspace.files_saved': onWorkspaceFiles(data); break;
+    case 'supervisor_changed':    onSupervisorChanged(data); break;
+    case 'agent_config_changed':  onAgentConfigChanged(data); break;
+    case 'stopped':
+      log('system','Görev durduruldu.','error');
+      AGENTS.forEach(a => setAgent(a,'idle',''));
+      stopSessionTimer();
+      $('s-elapsed').textContent = '—';
+      setRunning(false);
+      break;
+    case 'error': log('system',`⚠ ${data.message}`,'error'); break;
+    case 'pong': break;
+  }
+}
+
+// ── Session Events ─────────────────────────────────────────────────
+function onReady(data) {
+  const label = `${data.supervisor_provider}:${data.supervisor_model}`;
+  $('sup-label').textContent       = `Supervisor: ${data.supervisor_model}`;
+  $('sup-model-label').textContent = `Supervisor · ${data.supervisor_model}`;
+  setBadge('net-badge', data.online ? '🌐 Çevrimiçi':'💻 Çevrimdışı', data.online?'online':'offline');
+  log('system',`Hazır — ${label} (${data.online?'çevrimiçi':'çevrimdışı'})`,'info');
+}
+
+function onSessionStart(data) {
+  AGENTS.forEach(a => setAgent(a,'idle',''));
+  WORKER_AGENTS.forEach(a => { if (thinkState[a]) thinkState[a] = {inThink:false,visible:''}; });
+  state.session = { start:Date.now(), success:0, fail:0 };
+  $('plan-section').style.display = 'none';
+  $('plan-viz').innerHTML = '';
+  updateStats();
+  log('system',`━━ Yeni Oturum: ${data.goal} ━━`,'info');
+  startSessionTimer();
+}
+
+function onPlanCreated(data) {
+  setAgent('supervisor','done',`${data.tasks.length} görev planlandı`);
+  renderPlan(data);
+  log('supervisor',`Plan: ${data.tasks.length} görev, ${data.total_groups} grup`,'success');
+}
+
+function onTaskComplete(data) {
+  setAgent(data.agent_type, data.success ? 'done':'error', '');
+  if (data.success) {
+    state.session.success++;
+    const rawEl = $(`output-${data.agent_type}`);
+    if (rawEl) {
+      renderAgentOutput(data.agent_type, rawEl.textContent);
+      if (data.agent_type === 'reviewer') showVerdict(rawEl.textContent);
+    }
+  } else {
+    state.session.fail++;
+  }
+  updateStats();
+  log(data.agent_type, `${data.success?'✓':'✗'} Tamamlandı (${data.duration_s}s)`, data.success?'success':'error');
+}
+
+function onSessionComplete(data) {
+  setRunning(false);
+  stopSessionTimer();
+  $('s-elapsed').textContent = `${data.duration_s}s`;
+  log('system',`━━ Tamamlandı: ${data.success_count}✓ ${data.fail_count}✗ (${data.duration_s}s) ━━`,'success');
+  const milaBtn = $('mila-send-btn');
+  if (milaBtn) milaBtn.disabled = false;
+  addMilaHistory('system','✓ Tamamlandı. Devam talimatı verebilirsiniz.');
+  // Geçmişe ekle
+  state.history.unshift({
+    goal:     data.goal || $('task-input').value.trim(),
+    ts:       Date.now(),
+    success:  data.success_count,
+    fail:     data.fail_count,
+    duration: data.duration_s,
+  });
+  renderHistoryFull();
+  renderHistorySidebar();
+}
+
+function onSupervisorChanged(data) {
+  const label = `${data.provider}:${data.model}`;
+  $('sup-label').textContent       = `Supervisor: ${data.model}`;
+  $('sup-model-label').textContent = `Supervisor · ${data.model}`;
+  setBadge('net-badge', data.online?'🌐 Çevrimiçi':'💻 Çevrimdışı', data.online?'online':'offline');
+  log('system',`Supervisor değişti: ${label}`,'success');
+  supState.current  = data;
+  supState.selected = { provider:data.provider, model:data.model };
+  renderSupList();
+}
+
+function onAgentConfigChanged(data) {
+  const { agent, provider, model, temperature } = data;
+  // Update pipeline card role label + model tag
+  const roleEl = $(`role-${agent}`);
+  if (roleEl) roleEl.textContent = model;
+  const mtagEl = $(`mtag-${agent}`);
+  if (mtagEl) mtagEl.textContent = model;
+  // Update settings state
+  if (settingsState.agentCfg[agent]) {
+    settingsState.agentCfg[agent] = { provider, model, temperature };
+  }
+  // Show saved badge on settings card
+  const badge = document.querySelector(`[data-agent="${agent}"] .cfg-saved-badge`);
+  if (badge) {
+    badge.textContent = '✓ Kaydedildi';
+    badge.classList.add('show');
+    setTimeout(() => badge.classList.remove('show'), 2500);
+  }
+  log('system', `⚙ ${AGENT_META[agent]?.name} modeli değişti: ${model}`, 'success');
+}
+
+// ── Run / Stop ─────────────────────────────────────────────────────
+function sendRun() {
+  if (!state.connected) { log('system','WebSocket bağlı değil!','error'); return; }
+  const goal = $('task-input').value.trim();
+  const ctx  = $('ctx-input').value.trim();
+  if (!goal) { log('system','Lütfen görev girin.','error'); return; }
+  setRunning(true);
+  state.ws.send(JSON.stringify({ type:'run', goal, context:ctx }));
+}
+
+function sendStop() {
+  if (state.ws) state.ws.send(JSON.stringify({ type:'stop' }));
+  AGENTS.forEach(a => { if (state.agents[a].status === 'running') stopElapsedTimer(a); });
+}
+
+function setRunning(v) {
+  state.running = v;
+  const btn  = $('run-btn');
+  const icon = $('run-icon');
+  const text = $('run-text');
+  const stop = $('stop-btn');
+  btn.disabled     = v;
+  btn.className    = v ? 'btn btn-run running' : 'btn btn-run';
+  icon.innerHTML   = v ? '<span class="spinner"></span>' : '▶';
+  text.textContent = v ? 'Çalışıyor...' : 'Çalıştır';
+  stop.className   = v ? 'btn btn-stop visible' : 'btn btn-stop';
+}
+
+// ── Tab Switching ──────────────────────────────────────────────────
+let currentTab = 'pipeline';
+function switchTab(name) {
+  if (currentTab === name) return;
+  currentTab = name;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === `tab-btn-${name}`));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+  if (name === 'settings' && !settingsState.loaded) loadAgentSettings();
+}
+
+// ── Agent State ────────────────────────────────────────────────────
+function setAgent(agent, status, task) {
+  const s = state.agents[agent];
+  s.status = status; s.task = task;
+
+  const card   = $(`card-${agent}`);
+  const badge  = $(`status-${agent}`);
+  const taskEl = $(`task-${agent}`);
+  if (!card) return;
+  card.dataset.status = status;
+
+  const labels = { idle:'Bekliyor', running:'Çalışıyor', done:'Tamamlandı', error:'Hata', queued:'Sırada' };
+  if (badge)  badge.textContent  = labels[status] || status;
+  if (taskEl) taskEl.textContent = task || '';
+
+  if (status === 'running') {
+    s.startMs = Date.now(); s.output = '';
+    clearOutput(agent);
+    startElapsedTimer(agent);
+  } else if (status === 'idle') {
+    stopElapsedTimer(agent);
+    s.startMs = 0;
+    const el = $(`elapsed-${agent}`);
+    if (el) el.textContent = '';
+  } else {
+    stopElapsedTimer(agent);
+    const el = $(`elapsed-${agent}`);
+    if (el && s.startMs) el.textContent = `${((Date.now()-s.startMs)/1000).toFixed(1)}s`;
+  }
+}
+
+// ── Think filter ───────────────────────────────────────────────────
+const thinkState = {};
+function filterThink(agent, chunk) {
+  if (!thinkState[agent]) thinkState[agent] = { inThink:false, visible:'' };
+  const ts = thinkState[agent];
+  let rest = chunk;
+  while (rest.length > 0) {
+    if (ts.inThink) {
+      const end = rest.indexOf('</think>');
+      if (end === -1) { rest=''; break; }
+      rest = rest.slice(end+8); ts.inThink = false;
+    } else {
+      const start = rest.indexOf('<think>');
+      if (start === -1) { ts.visible += rest; rest=''; break; }
+      ts.visible += rest.slice(0, start);
+      rest = rest.slice(start+7); ts.inThink = true;
+    }
+  }
+  const out = ts.visible; ts.visible = '';
+  return out;
+}
+
+function appendOutput(agent, chunk) {
+  const s = state.agents[agent];
+  if (!s) return;
+  const visible = filterThink(agent, chunk);
+  if (!visible) return;
+  s.output += visible;
+  // Terminal logging
+  s.lineBuffer = (s.lineBuffer||'') + visible;
+  const lines = s.lineBuffer.split('\n');
+  for (let i=0; i<lines.length-1; i++) { const l=lines[i].trim(); if(l) log(agent,l,'stream'); }
+  s.lineBuffer = lines[lines.length-1];
+  // Card preview (last 700 chars)
+  const el = $(`output-${agent}`);
+  if (!el) return;
+  const t = s.output;
+  el.textContent = t.length > 700 ? '…'+t.slice(-700) : t;
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearOutput(agent) {
+  const el = $(`output-${agent}`);
+  if (el) el.textContent = '';
+  const s = state.agents[agent];
+  if (s) { s.output=''; s.lineBuffer=''; }
+  // Reset think state
+  if (thinkState[agent]) thinkState[agent] = {inThink:false, visible:''};
+  // Hide rendered
+  const rEl = $(`rendered-${agent}`);
+  if (rEl) { rEl.innerHTML=''; rEl.style.display='none'; }
+  if (el) el.classList.remove('raw-hidden');
+}
+
+// ── Timers ─────────────────────────────────────────────────────────
+function startElapsedTimer(agent) {
+  const s = state.agents[agent];
+  stopElapsedTimer(agent);
+  s.timer = setInterval(() => {
+    const el = $(`elapsed-${agent}`);
+    if (el && s.startMs) el.textContent = `${((Date.now()-s.startMs)/1000).toFixed(1)}s`;
+  }, 100);
+}
+function stopElapsedTimer(agent) {
+  const s = state.agents[agent];
+  if (s?.timer) { clearInterval(s.timer); s.timer=null; }
+}
+let _sessionTimer = null;
+function startSessionTimer() {
+  stopSessionTimer();
+  const start = Date.now();
+  _sessionTimer = setInterval(() => {
+    $('s-elapsed').textContent = `${((Date.now()-start)/1000).toFixed(1)}s`;
+  }, 200);
+}
+function stopSessionTimer() {
+  if (_sessionTimer) { clearInterval(_sessionTimer); _sessionTimer=null; }
+}
+
+// ── Stats ──────────────────────────────────────────────────────────
+function updateStats() {
+  $('s-success').textContent = state.session.success || '—';
+  $('s-fail').textContent    = state.session.fail    || '—';
+}
+
+// ── Markdown Renderer ──────────────────────────────────────────────
+function renderAgentOutput(agentType, rawText) {
+  const renderedEl = $(`rendered-${agentType}`);
+  const streamEl   = $(`output-${agentType}`);
+  if (!renderedEl || !rawText.trim()) return;
+  let html = '';
+  const parts = rawText.split(/(```[\w]*\n[\s\S]*?```)/g);
+  for (const part of parts) {
+    const m = part.match(/^```([\w]*)\n([\s\S]*?)```$/);
+    if (m) {
+      const lang = m[1]||'text';
+      const code = m[2];
+      html += `<div class="code-block">
+        <div class="code-block-header">
+          <span class="code-lang">${esc(lang)}</span>
+          <button class="code-copy-btn" onclick="copyCode(this)">📋 Kopyala</button>
+        </div>
+        <pre><code>${esc(code)}</code></pre>
+      </div>`;
+    } else {
+      let t = part;
+      t = t.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+      t = t.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+      t = t.replace(/^# (.+)$/gm,'<h2>$1</h2>');
+      t = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+      t = t.replace(/`([^`]+)`/g,'<code>$1</code>');
+      t = t.replace(/^[\s]*[-*] (.+)$/gm,'<li>$1</li>');
+      t = t.replace(/(<li>.*<\/li>\n?)+/g,m=>`<ul>${m}</ul>`);
+      t = t.replace(/🔴 \[CRITICAL\]/g,'<span style="color:var(--error);font-weight:700">🔴 CRITICAL</span>');
+      t = t.replace(/🟠 \[MAJOR\]/g,   '<span style="color:var(--warning);font-weight:700">🟠 MAJOR</span>');
+      t = t.replace(/🟡 \[MINOR\]/g,   '<span style="color:#facc15;font-weight:700">🟡 MINOR</span>');
+      t = t.replace(/🟢 \[SUGGEST\]/g, '<span style="color:var(--success);font-weight:700">🟢 SUGGEST</span>');
+      t = t.split(/\n\n+/).map(p=>{p=p.trim();if(!p)return'';if(p.startsWith('<'))return p;return`<p>${p.replace(/\n/g,'<br>')}</p>`;}).join('');
+      html += t;
+    }
+  }
+  renderedEl.innerHTML = html;
+  renderedEl.style.display = '';
+  if (streamEl) streamEl.classList.add('raw-hidden');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  if (!pre) return;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = '✓ Kopyalandı';
+    setTimeout(()=>btn.textContent='📋 Kopyala', 2000);
+  });
+}
+
+// ── Expand / Modal ─────────────────────────────────────────────────
+function toggleExpand(agent) {
+  const rEl = $(`rendered-${agent}`);
+  const sEl = $(`output-${agent}`);
+  const btn = $(`expand-${agent}`);
+  const target = (rEl && rEl.innerHTML) ? rEl : sEl;
+  if (!target) return;
+  const exp = target.classList.toggle('expanded');
+  if (btn) btn.textContent = exp ? '⤡ Küçült' : '⤢ Genişlet';
+}
+
+function openOutputModal(agentType) {
+  const sEl = $(`output-${agentType}`);
+  const rEl = $(`rendered-${agentType}`);
+  const raw = sEl ? sEl.textContent : '';
+  if (!raw) return;
+  closeModal('output-modal');
+  const name = AGENT_META[agentType]?.name || agentType;
+  const bodyHtml = (rEl && rEl.innerHTML)
+    ? `<div style="font-size:13px;line-height:1.75;padding:20px;overflow-y:auto;flex:1;color:var(--text)">${rEl.innerHTML}</div>`
+    : `<pre style="margin:0;padding:20px;overflow:auto;flex:1;font-family:var(--font-mono);font-size:12px;color:#9ccfd8;line-height:1.6;white-space:pre-wrap">${esc(raw)}</pre>`;
+  const modal = document.createElement('div');
+  modal.id = 'output-modal';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">${name} — Tam Çıktı</span>
+        <div class="modal-actions">
+          <button class="modal-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('_modal_raw').textContent).then(()=>log('system','📋 Kopyalandı','info'))">📋 Tümünü Kopyala</button>
+          <button class="modal-close-btn" onclick="closeModal('output-modal')">×</button>
+        </div>
+      </div>
+      <div id="_modal_raw" style="display:none">${esc(raw)}</div>
+      ${bodyHtml}
+    </div>`;
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.remove();
+}
+
+function copyOutput(agentType) {
+  const el = $(`output-${agentType}`);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent).then(()=>log('system',`📋 ${agentType} kopyalandı`,'info'));
+}
+
+// ── Verdict / Revision ─────────────────────────────────────────────
+function showVerdict(text) {
+  const b = $('verdict-reviewer');
+  if (!b) return;
+  if (text.includes('APPROVED')) { b.textContent='✓ APPROVED'; b.className='verdict-badge approved'; }
+  else if (text.includes('CHANGES_REQUIRED')) { b.textContent='⚠ CHANGES'; b.className='verdict-badge changes'; }
+  else if (text.includes('REJECTED')) { b.textContent='✗ REJECTED'; b.className='verdict-badge rejected'; }
+}
+function onModelOverride(data) {
+  // Agent kartındaki model-tag'i supervisor seçimiyle güncelle
+  const mtagEl = $(`mtag-${data.agent_type}`);
+  if (mtagEl) {
+    const shortModel = (data.model||'').split(':').slice(1).join(':') || data.model;
+    mtagEl.textContent = shortModel;
+    mtagEl.title = `Supervisor seçimi: ${data.model}`;
+    mtagEl.style.color = 'var(--warning)';   // sarı ile vurgula
+  }
+  log(data.agent_type, `🔀 Supervisor model seçimi: ${data.model}`, 'info');
+}
+
+function showRevisionBar(iteration, verdict) {
+  const bar=$('revision-bar'), txt=$('revision-text');
+  if (!bar||!txt) return;
+  txt.textContent = `Revizyon ${iteration} — ${verdict}. Kenji düzeltiyor...`;
+  bar.classList.add('visible');
+  log('system',`🔄 Revizyon ${iteration}: ${verdict}`,'info');
+}
+
+// ── Plan Viz ───────────────────────────────────────────────────────
+const CHIP_COLORS = {
+  researcher:'rgba(167,139,250,0.12); border-color:rgba(167,139,250,0.4); color:#a78bfa',
+  coder:     'rgba(52,211,153,0.12);  border-color:rgba(52,211,153,0.4);  color:#34d399',
+  reviewer:  'rgba(251,191,36,0.12);  border-color:rgba(251,191,36,0.4);  color:#fbbf24',
+  tester:    'rgba(34,211,238,0.12);  border-color:rgba(34,211,238,0.4);  color:#22d3ee',
+  debugger:  'rgba(248,113,113,0.12); border-color:rgba(248,113,113,0.4); color:#f87171',
+};
+function renderPlan(data) {
+  const viz = $('plan-viz'); viz.innerHTML = '';
+  const groups = {};
+  (data.tasks||[]).forEach(t=>{ const g=t.parallel_group??0; if(!groups[g]) groups[g]=[]; groups[g].push(t); });
+  const gids = Object.keys(groups).sort((a,b)=>+a-+b);
+  gids.forEach((gid,idx)=>{
+    const row=document.createElement('div'); row.className='plan-group';
+    const lbl=document.createElement('div'); lbl.className='plan-gid'; lbl.textContent=`G${gid}`; row.appendChild(lbl);
+    const chips=document.createElement('div'); chips.className='plan-chips';
+    groups[gid].forEach(t=>{
+      const chip=document.createElement('div'); chip.className='plan-chip';
+      chip.style.cssText=`background:${CHIP_COLORS[t.type]||''}`;
+      // model override varsa küçük badge ekle
+      const modelHint = t.model_override ? `<span class="chip-model-badge">${t.model_override.split(':').slice(1).join(':') || t.model_override}</span>` : '';
+      chip.innerHTML = `<span>${esc(t.type)}·${esc((t.description||'').slice(0,14))}…</span>${modelHint}`;
+      chip.title = t.description + (t.model_override ? `\nModel: ${t.model_override}` : '');
+      chips.appendChild(chip);
+    });
+    row.appendChild(chips); viz.appendChild(row);
+    if (idx<gids.length-1) { const ar=document.createElement('div'); ar.className='plan-arrow'; ar.textContent='↓'; viz.appendChild(ar); }
+  });
+  $('plan-section').style.display='block';
+  // model-tag'leri plan verisiyle güncelle (supervisor override varsa)
+  (data.tasks||[]).forEach(t=>{
+    if (t.model_override) {
+      const mtagEl = $(`mtag-${t.type}`);
+      if (mtagEl) mtagEl.textContent = t.model_override.split(':').slice(1).join(':') || t.model_override;
+    }
+  });
+}
+
+// ── Supervisor Selector ────────────────────────────────────────────
+const supState = { tab:'cloud', items:{cloud:[],local:[]}, selected:null, current:null };
+
+async function loadSupModels() {
+  const loading = $('sup-loading');
+  loading.classList.add('visible');
+  $('sup-model-list').innerHTML = '';
+  try {
+    const data = await fetch('/supervisor/models').then(r=>r.json());
+    supState.items.cloud = data.cloud||[];
+    supState.items.local = data.local||[];
+    supState.current     = data.current||null;
+    if (supState.current) {
+      supState.selected = { provider:supState.current.provider, model:supState.current.model };
+      supState.tab = supState.current.provider==='ollama'?'local':'cloud';
+      setActiveSupTab(supState.tab);
+    }
+    // also populate settingsState.availableModels
+    settingsState.availableModels = (data.local||[]).map(m=>m.model);
+    renderSupList();
+  } catch(e) {
+    $('sup-model-list').innerHTML='<div style="font:10px var(--font-mono);color:var(--error);padding:6px">Yüklenemedi</div>';
+  } finally { loading.classList.remove('visible'); }
+}
+
+function setActiveSupTab(tab) {
+  $('tab-cloud').classList.toggle('active', tab==='cloud');
+  $('tab-local').classList.toggle('active', tab==='local');
+  $('tab-local').classList.toggle('local', true);
+  supState.tab = tab;
+}
+function switchSupTab(tab) { setActiveSupTab(tab); renderSupList(); }
+
+function renderSupList() {
+  const list   = $('sup-model-list');
+  const items  = supState.items[supState.tab]||[];
+  const btn    = $('sup-apply-btn');
+  const isLocal = supState.tab==='local';
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = isLocal
+      ? `<div style="font:10px var(--font-mono);color:var(--text-dim);padding:8px 4px;line-height:1.7">Ollama modeli bulunamadı.<br><span style="color:var(--supervisor)">ollama serve</span> çalışıyor mu?</div>`
+      : `<div style="font:10px var(--font-mono);color:var(--text-dim);padding:8px 4px;line-height:1.7">Bulut modeli yok.<br><span style="color:var(--text-mid)">.env'e ekle:</span><br><span style="color:var(--supervisor)">GOOGLE_API_KEY=...</span></div>`;
+    btn.classList.remove('visible'); return;
+  }
+  items.forEach(item=>{
+    const isSel = supState.selected?.provider===item.provider && supState.selected?.model===item.model;
+    const isAct = supState.current?.provider===item.provider  && supState.current?.model===item.model;
+    const div = document.createElement('div');
+    div.className = 'sup-model-item'+(isSel?(isLocal?' selected local':' selected'):'');
+    div.innerHTML = `
+      <span class="sup-model-icon">${item.icon||'💻'}</span>
+      <div class="sup-model-info">
+        <div class="sup-model-name">${esc(item.label||item.model)}</div>
+        <div class="sup-model-sub">${item.provider}${isLocal&&item.installed?' · kurulu':''}</div>
+      </div>
+      ${isAct?`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:rgba(16,185,129,0.12);color:var(--success);border:1px solid rgba(16,185,129,0.3);white-space:nowrap">aktif</span>`:''}
+    `;
+    div.onclick = () => { supState.selected={provider:item.provider,model:item.model}; renderSupList(); };
+    list.appendChild(div);
+  });
+  const isDiff = supState.selected && (supState.selected.provider!==supState.current?.provider || supState.selected.model!==supState.current?.model);
+  btn.classList.toggle('visible', !!isDiff);
+  btn.classList.toggle('local-mode', isLocal);
+}
+
+function applySupvisor() {
+  if (!state.connected||!supState.selected) return;
+  if (state.running) { log('system','Görev çalışırken supervisor değiştirilemez.','error'); return; }
+  state.ws.send(JSON.stringify({ type:'set_supervisor', provider:supState.selected.provider, model:supState.selected.model }));
+  $('sup-apply-btn').classList.remove('visible');
+  log('system',`Supervisor değiştiriliyor: ${supState.selected.model}`,'info');
+}
+
+// ── Settings ───────────────────────────────────────────────────────
+const AGENT_SETTINGS_META = {
+  researcher: { name:'Aria',  emoji:'🔬', role:'Researcher', defaultTemp:0.3 },
+  coder:      { name:'Kenji', emoji:'💻', role:'Coder',      defaultTemp:0.1 },
+  reviewer:   { name:'Rex',   emoji:'🔍', role:'Reviewer',   defaultTemp:0.1 },
+  tester:     { name:'Zara',  emoji:'🧪', role:'Tester',     defaultTemp:0.2 },
+  debugger:   { name:'Neo',   emoji:'🐛', role:'Debugger',   defaultTemp:0.2 },
+};
+
+async function loadAgentSettings() {
+  try {
+    const cfg = await fetch('/settings/agents').then(r=>r.json());
+    settingsState.agentCfg = cfg;
+    settingsState.loaded = true;
+    renderAgentSettings();
+    // Also load available models if not loaded yet
+    if (!settingsState.availableModels.length) {
+      const mdata = await fetch('/supervisor/models').then(r=>r.json());
+      settingsState.availableModels = (mdata.local||[]).map(m=>m.model);
+      renderAgentSettings(); // re-render with model list
+    }
+  } catch(e) {
+    log('system','⚠ Ayarlar yüklenemedi.','error');
+  }
+}
+
+function renderAgentSettings() {
+  const grid = $('agent-settings-grid');
+  grid.innerHTML = '';
+  WORKER_AGENTS.forEach(agent => {
+    const meta = AGENT_SETTINGS_META[agent];
+    const cfg  = settingsState.agentCfg[agent] || { provider:'ollama', model:'—', temperature:0.1 };
+    const models = settingsState.availableModels;
+
+    const modelOptions = models.length
+      ? models.map(m=>`<option value="${esc(m)}" ${m===cfg.model?'selected':''}>${esc(m)}</option>`).join('')
+      : `<option value="${esc(cfg.model)}">${esc(cfg.model)}</option>`;
+
+    const card = document.createElement('div');
+    card.className = 'agent-cfg-card';
+    card.dataset.agent = agent;
+    card.innerHTML = `
+      <div class="cfg-card-header">
+        <div class="cfg-avatar">${meta.emoji}</div>
+        <div>
+          <div class="cfg-name">${meta.name}</div>
+          <div class="cfg-role">${meta.role}</div>
+        </div>
+        <span class="cfg-saved-badge">✓ Kaydedildi</span>
+      </div>
+
+      <div class="cfg-field">
+        <div class="cfg-field-label">Model</div>
+        <select class="cfg-select" id="cfg-model-${agent}">${modelOptions}</select>
+      </div>
+
+      <div class="cfg-field">
+        <div class="cfg-field-label">Sıcaklık <span id="cfg-temp-val-${agent}">${cfg.temperature.toFixed(2)}</span></div>
+        <div class="temp-row">
+          <input type="range" class="temp-slider" id="cfg-temp-${agent}"
+            min="0" max="1.5" step="0.05" value="${cfg.temperature}"
+            oninput="$('cfg-temp-val-${agent}').textContent=parseFloat(this.value).toFixed(2)">
+          <span class="temp-val" id="cfg-temp-display-${agent}">${cfg.temperature.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <button class="cfg-apply-btn" onclick="applyAgentConfig('${agent}')">
+        ⚙ ${meta.name} Ayarlarını Kaydet
+      </button>
+    `;
+    // Sync temp slider display + inject agent color into track fill
+    const AGENT_COLORS = {
+      researcher:'#a78bfa', coder:'#34d399', reviewer:'#fbbf24',
+      tester:'#22d3ee', debugger:'#f87171',
+    };
+    const acColor = AGENT_COLORS[agent] || '#5b8ff9';
+    const slider  = card.querySelector(`#cfg-temp-${agent}`);
+    const display = card.querySelector(`#cfg-temp-display-${agent}`);
+    const valSpan = card.querySelector(`#cfg-temp-val-${agent}`);
+    const applyBtn = card.querySelector('.cfg-apply-btn');
+    if (applyBtn) applyBtn.style.cssText = `border-color:${acColor};color:${acColor};`;
+    function updateSliderFill(val) {
+      const pct = (parseFloat(val) / 1.5) * 100;
+      if (slider) slider.style.background =
+        `linear-gradient(to right, ${acColor} 0%, ${acColor} ${pct}%, var(--border) ${pct}%, var(--border) 100%)`;
+    }
+    updateSliderFill(cfg.temperature);
+    if (slider) slider.oninput = function() {
+      const v = parseFloat(this.value).toFixed(2);
+      if (display) display.textContent = v;
+      if (valSpan) valSpan.textContent = v;
+      updateSliderFill(this.value);
+    };
+    grid.appendChild(card);
+  });
+}
+
+function applyAgentConfig(agent) {
+  if (!state.connected) { log('system','WebSocket bağlı değil!','error'); return; }
+  if (state.running)    { log('system','Görev çalışırken ayar değiştirilemez.','error'); return; }
+  const modelEl = $(`cfg-model-${agent}`);
+  const tempEl  = $(`cfg-temp-${agent}`);
+  if (!modelEl || !tempEl) return;
+  const model       = modelEl.value;
+  const temperature = parseFloat(tempEl.value);
+  const provider    = 'ollama'; // worker agents always local
+  state.ws.send(JSON.stringify({ type:'set_agent_config', agent, provider, model, temperature }));
+  log('system',`⚙ ${AGENT_SETTINGS_META[agent]?.name} için ${model} uygulanıyor...`,'info');
+}
+
+// ── History (full tab) ─────────────────────────────────────────────
+function renderHistoryFull() {
+  const list  = $('history-full-list');
+  const empty = $('hs-empty');
+  if (!state.history.length) { empty.style.display=''; list.innerHTML=''; return; }
+  empty.style.display = 'none';
+  list.innerHTML = state.history.map((h,i)=>`
+    <div class="history-session">
+      <div class="hs-num">#${state.history.length-i}</div>
+      <div class="hs-body">
+        <div class="hs-goal">${esc(h.goal||'—')}</div>
+        <div class="hs-meta">${h.success||0}✓ ${h.fail||0}✗ · ${h.duration||'?'}s · ${new Date(h.ts||0).toLocaleTimeString('tr-TR')}</div>
+      </div>
+      <button class="hs-rerun" onclick="rerunHistory(${i})">▶ Tekrar</button>
+    </div>
+  `).join('');
+}
+
+function rerunHistory(idx) {
+  const h = state.history[idx];
+  if (!h) return;
+  $('task-input').value = h.goal || '';
+  switchTab('pipeline');
+  $('task-input').focus();
+}
+
+// ── Workspace ──────────────────────────────────────────────────────
+const wsState = { project:'', files:[] };
+function onWorkspaceFiles(data) {
+  wsState.project = data.project||'';
+  const newFiles = (data.files||[]).map(f=>{
+    const parts = f.replace(/\\/g,'/').split('/workspace/');
+    return parts.length>1?parts[1]:f.replace(/\\/g,'/');
+  });
+  newFiles.forEach(f=>{ if(!wsState.files.includes(f)) wsState.files.push(f); });
+  renderWorkspace();
+  log('system',`📁 ${newFiles.length} dosya kaydedildi`,'success');
+}
+function renderWorkspace() {
+  const empty=$('ws-empty'), list=$('ws-file-list');
+  if (!wsState.files.length) { empty.style.display=''; list.innerHTML=''; return; }
+  empty.style.display='none';
+  const icons={html:'🌐',css:'🎨',js:'⚡',ts:'⚡',py:'🐍',json:'📋',md:'📝',txt:'📄',sql:'🗄',sh:'🔧',yml:'⚙',yaml:'⚙'};
+  const tag = wsState.project ? `<div class="ws-project-tag">📁 ${esc(wsState.project)}</div>`:'';
+  list.innerHTML = tag + wsState.files.map(f=>{
+    const ext=f.split('.').pop().toLowerCase();
+    const icon=icons[ext]||'📄';
+    const name=f.split('/').pop();
+    return `<div class="ws-file-item" onclick="viewFile('${esc(f)}')" title="${esc(f)}">
+      <span>${icon}</span><span class="ws-file-name">${esc(name)}</span>
+    </div>`;
+  }).join('');
+}
+async function viewFile(path) {
+  try {
+    const data = await fetch(`/workspace/read?path=${encodeURIComponent(path)}`).then(r=>r.json());
+    if (data.error) { log('system',`⚠ ${data.error}`,'error'); return; }
+    showFileViewer(path, data.content);
+  } catch(e) { log('system',`⚠ Dosya okunamadı: ${e.message}`,'error'); }
+}
+function showFileViewer(path, content) {
+  closeModal('file-viewer-modal');
+  const modal = document.createElement('div');
+  modal.id='file-viewer-modal'; modal.className='modal-overlay';
+  modal.innerHTML=`
+    <div class="modal-box" style="max-width:860px">
+      <div class="modal-header">
+        <span class="modal-title">📄 ${esc(path)}</span>
+        <div class="modal-actions">
+          <button class="modal-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('_fv_content').textContent).then(()=>log('system','📋 Kopyalandı','info'))">Kopyala</button>
+          <button class="modal-close-btn" onclick="closeModal('file-viewer-modal')">×</button>
+        </div>
+      </div>
+      <pre id="_fv_content" style="margin:0;padding:16px;overflow:auto;font-family:var(--font-mono);font-size:12px;color:#9ccfd8;line-height:1.5;white-space:pre;flex:1">${esc(content)}</pre>
+    </div>`;
+  modal.addEventListener('click',e=>{ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+async function uploadFiles(input) {
+  for (const f of input.files) {
+    const fd = new FormData(); fd.append('file',f);
+    try {
+      const data = await fetch('/workspace/upload?project=uploads',{method:'POST',body:fd}).then(r=>r.json());
+      if (data.saved) { if(!wsState.files.includes(data.saved)) wsState.files.push(data.saved); log('system',`📎 Yüklendi: ${data.name} (${(data.size/1024).toFixed(1)}KB)`,'success'); }
+    } catch(e) { log('system',`⚠ Yükleme: ${e.message}`,'error'); }
+  }
+  renderWorkspace(); input.value='';
+}
+async function loadWorkspaceFiles() {
+  try {
+    const data = await fetch('/workspace/files').then(r=>r.json());
+    if (data.files?.length) { wsState.files=data.files; renderWorkspace(); }
+  } catch(e) {}
+}
+
+// ── Mila ───────────────────────────────────────────────────────────
+function addMilaHistory(role, text) {
+  const c=$('mila-history'); if(!c) return;
+  const d=document.createElement('div'); d.className=`mila-msg ${role}`; d.textContent=text;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+function sendMilaMessage() {
+  if (!state.connected) { log('system','WebSocket bağlı değil!','error'); return; }
+  if (state.running)    { log('system','Görev çalışıyor. Önce durdur.','error'); return; }
+  const input=$('mila-input');
+  const msg=input.value.trim();
+  if (!msg) return;
+  addMilaHistory('user',msg); input.value='';
+  const btn=$('mila-send-btn'); if(btn) btn.disabled=true;
+  setRunning(true);
+  state.ws.send(JSON.stringify({ type:'message_mila', message:msg }));
+  log('supervisor',`🧠 Mila'ya: ${msg}`,'info');
+}
+
+// ── Terminal ───────────────────────────────────────────────────────
+function log(agent, msg, level='info') {
+  const el=$('term-log');
+  const line=document.createElement('div'); line.className='log-line';
+  const now=new Date();
+  const ts=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  line.innerHTML=`<span class="log-ts">${ts}</span><span class="log-agent ${agent}">[${agent}]</span><span class="log-msg ${level}">${esc(msg)}</span>`;
+  el.appendChild(line);
+  while (el.children.length>500) el.removeChild(el.firstChild);
+  el.scrollTop=el.scrollHeight;
+}
+function clearLog() { $('term-log').innerHTML=''; }
+function copyLog() {
+  const lines=[...$('term-log').querySelectorAll('.log-line')].map(l=>l.textContent.trim()).join('\n');
+  navigator.clipboard.writeText(lines).then(()=>log('system','Log kopyalandı.','info'));
+}
+
+// ── Sidebar History ────────────────────────────────────────────────
+function renderHistorySidebar() {
+  const el=$('history-list');
+  const last = state.history.slice(0,6);
+  el.innerHTML = last.map(h=>`<div class="history-item" onclick="loadHistoryGoal('${esc(h.goal||'').replace(/'/g,'\\\'')}')" title="${esc(h.goal||'')}">${esc(h.goal||'')}</div>`).join('');
+}
+function loadHistoryGoal(goal) { $('task-input').value=goal; }
+
+// ── Helpers ────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function setBadge(id, text, cls) { const el=$(id); if(!el) return; el.textContent=text; el.className=`hbadge ${cls}`; }
+
+// ── Keyboard shortcuts ─────────────────────────────────────────────
+document.getElementById('task-input').addEventListener('keydown', e=>{ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) sendRun(); });
+document.getElementById('mila-input').addEventListener('keydown', e=>{ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) sendMilaMessage(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') { closeModal('output-modal'); closeModal('file-viewer-modal'); } });
+
+// ── Init ───────────────────────────────────────────────────────────
+connect();
+loadSupModels();
+loadWorkspaceFiles();
+
+fetch('/health').then(r=>r.json()).then(d=>{
+  $('s-memory').textContent = typeof d.memory_count==='number' ? `${d.memory_count} otr` : '—';
+  // Populate model labels from health
+}).catch(()=>{});
+
+// Populate agent role labels after settings load
+async function initAgentLabels() {
+  try {
+    const cfg = await fetch('/settings/agents').then(r=>r.json());
+    for (const [agent, data] of Object.entries(cfg)) {
+      const roleEl = $(`role-${agent}`);
+      if (roleEl) roleEl.textContent = data.model;
+      const mtagEl = $(`mtag-${agent}`);
+      if (mtagEl) mtagEl.textContent = data.model;
+    }
+    settingsState.agentCfg = cfg;
+  } catch(e) {}
+}
+initAgentLabels();
+</script>
+</body>
+</html>

@@ -1,0 +1,2492 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent System · Mila</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN SYSTEM
+═══════════════════════════════════════════════════════ */
+:root {
+  --bg:          #0a0a0f;
+  --bg-s:        #111118;
+  --bg-card:     #16161f;
+  --bg-input:    #0e0e18;
+  --bg-hover:    #1a1a28;
+  --border:      #1e1e2e;
+  --border-dim:  #161624;
+  --border-mid:  #2a2a42;
+
+  --text:        #e2e8f0;
+  --text-dim:    #3a3a58;
+  --text-mid:    #606080;
+  --text-soft:   #9090b8;
+
+  --mila:        #818cf8;
+  --mila-dim:    rgba(129,140,248,.12);
+  --mila-glow:   rgba(129,140,248,.25);
+  --user:        #22c55e;
+
+  --aria:   #a78bfa; --aria-d:  rgba(167,139,250,.12);
+  --kenji:  #34d399; --kenji-d: rgba(52,211,153,.12);
+  --rex:    #fbbf24; --rex-d:   rgba(251,191,36,.12);
+  --zara:   #22d3ee; --zara-d:  rgba(34,211,238,.12);
+  --neo:    #f87171; --neo-d:   rgba(248,113,113,.12);
+
+  --ok:      #10b981;
+  --err:     #ef4444;
+  --warn:    #f59e0b;
+
+  --r:  8px;
+  --rs: 4px;
+  --rl: 12px;
+  --mono: 'JetBrains Mono', monospace;
+  --ui:   'Inter', system-ui, sans-serif;
+  --sidebar-w: 256px;
+  --panel-w:   300px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: dark; }
+body {
+  font-family: var(--ui);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 14px;
+}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+button { font-family: var(--ui); cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea { font-family: var(--ui); color: var(--text); }
+
+/* ═══════════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════════ */
+.header {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,10,15,.96);
+  backdrop-filter: blur(12px);
+  flex-shrink: 0;
+  z-index: 100;
+  gap: 12px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.logo {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+}
+.logo-mark {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--mila), #6366f1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+}
+.logo-text { color: var(--text-soft); }
+.logo-text span { color: var(--text); }
+.sidebar-toggle-btn {
+  width: 28px; height: 28px; border-radius: var(--rs);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid); transition: .15s;
+}
+.sidebar-toggle-btn:hover { background: var(--bg-hover); color: var(--text); }
+
+.header-center { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center; }
+.sup-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 10px;
+  font-size: 11.5px; color: var(--text-soft); cursor: pointer;
+  transition: .15s; max-width: 280px;
+}
+.sup-badge:hover { border-color: var(--mila); color: var(--text); }
+.sup-badge .sup-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex-shrink: 0; }
+.sup-badge .sup-dot.offline { background: var(--text-dim); }
+
+.header-right { display: flex; align-items: center; gap: 6px; }
+.hbtn {
+  height: 30px; padding: 0 10px; border-radius: var(--rs);
+  font-size: 12px; color: var(--text-mid);
+  display: flex; align-items: center; gap: 5px;
+  transition: .15s; border: 1px solid transparent;
+}
+.hbtn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border); }
+.hbtn.active { color: var(--mila); border-color: var(--mila-glow); background: var(--mila-dim); }
+
+/* ═══════════════════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════════════════ */
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── LEFT SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-s);
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width .2s ease;
+}
+.sidebar.collapsed { width: 0; border-right: none; }
+
+.sidebar-top { padding: 12px; border-bottom: 1px solid var(--border-dim); }
+.new-chat-btn {
+  width: 100%; padding: 8px 12px; border-radius: var(--r);
+  border: 1px solid var(--border-mid); background: transparent;
+  color: var(--text-soft); font-size: 13px; text-align: left;
+  display: flex; align-items: center; gap: 8px; transition: .15s;
+}
+.new-chat-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--mila-glow); }
+.new-chat-btn svg { opacity: .6; }
+
+.sidebar-section { padding: 8px 12px; }
+.sidebar-section-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-dim); font-weight: 600; margin-bottom: 6px; padding: 0 4px;
+}
+.sidebar-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+.history-item {
+  padding: 7px 10px; border-radius: var(--rs); cursor: pointer;
+  color: var(--text-soft); font-size: 12.5px; transition: .12s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin: 1px 4px;
+}
+.history-item:hover { background: var(--bg-hover); color: var(--text); }
+.history-item.active { background: var(--mila-dim); color: var(--mila); }
+
+.sidebar-divider { height: 1px; background: var(--border-dim); margin: 8px 12px; }
+
+/* ── Date-grouped history ── */
+.hist-group-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-dim); font-weight: 600;
+  padding: 10px 16px 4px; margin-top: 4px;
+}
+.history-item {
+  padding: 7px 12px; border-radius: var(--rs); cursor: pointer;
+  color: var(--text-soft); font-size: 13px; transition: .12s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin: 1px 6px; display: flex; align-items: center; gap: 8px;
+}
+.history-item .hi-icon { font-size: 11px; flex-shrink: 0; opacity: .7; }
+.history-item .hi-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-item:hover { background: var(--bg-hover); color: var(--text); }
+.history-item.active { background: var(--mila-dim); color: var(--mila); }
+
+/* ── File tree (moved to right panel) ── */
+.file-tree { padding: 4px; }
+.file-node {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px; border-radius: var(--rs); cursor: pointer;
+  color: var(--text-mid); font-size: 12px; font-family: var(--mono);
+  transition: .12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.file-node:hover { background: var(--bg-hover); color: var(--text); }
+.file-node.folder { color: var(--text-soft); font-weight: 500; cursor: default; }
+.file-node.folder:hover { background: none; color: var(--text-soft); }
+.file-icon { font-size: 11px; flex-shrink: 0; }
+.file-empty { padding: 6px 12px; color: var(--text-dim); font-size: 11.5px; font-style: italic; }
+
+/* ── Memory recall badge ── */
+.memory-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px; margin: 0 6px 4px;
+  background: rgba(129,140,248,.07); border: 1px solid rgba(129,140,248,.2);
+  border-radius: var(--rs); font-size: 11px; color: var(--mila); cursor: default;
+}
+
+/* ── Mode switcher (header) ── */
+.mode-switcher {
+  display: flex; align-items: center; gap: 3px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px;
+}
+.mode-btn {
+  padding: 4px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 500; color: var(--text-mid);
+  transition: .15s; cursor: pointer;
+}
+.mode-btn:hover { color: var(--text); }
+.mode-btn.active {
+  background: var(--bg-hover); color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.mode-btn.active.code  { color: var(--mila); }
+.mode-btn.active.prop  { color: #f59e0b; }
+
+/* ── CHAT MAIN ── */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Messages area */
+.messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+.messages-inner {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Welcome screen */
+.welcome-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 60px 20px;
+  text-align: center;
+  min-height: 300px;
+}
+.welcome-logo {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: linear-gradient(135deg, var(--mila), #6366f1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 700; color: #fff;
+  box-shadow: 0 0 32px var(--mila-glow);
+}
+.welcome-title { font-size: 22px; font-weight: 600; color: var(--text); }
+.welcome-sub { font-size: 14px; color: var(--text-soft); max-width: 400px; line-height: 1.6; }
+.welcome-suggestions { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 440px; }
+.suggestion-btn {
+  padding: 11px 16px; border-radius: var(--r);
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-soft); font-size: 13px; text-align: left;
+  cursor: pointer; transition: .15s;
+}
+.suggestion-btn:hover { border-color: var(--mila); color: var(--text); background: var(--mila-dim); }
+
+/* Message rows */
+.msg { display: flex; gap: 14px; padding: 16px 0; position: relative; }
+.msg + .msg { border-top: 1px solid var(--border-dim); }
+
+/* User message */
+.msg-user {
+  flex-direction: row-reverse;
+  align-items: flex-start;
+}
+.msg-user .msg-content-wrap {
+  max-width: 72%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-right: 2px solid var(--user);
+  border-radius: var(--r) 3px var(--r) var(--r);
+  padding: 12px 16px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.msg-user .msg-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3);
+  color: var(--user); font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+
+/* Mila message */
+.msg-mila { flex-direction: row; align-items: flex-start; }
+.msg-mila .msg-avatar {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--mila), #6366f1);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+  box-shadow: 0 0 12px var(--mila-glow);
+}
+.msg-mila .msg-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* System message */
+.msg-system {
+  justify-content: center;
+  padding: 8px 0;
+}
+.msg-system .msg-sys-text {
+  font-size: 11.5px; color: var(--text-dim);
+  padding: 4px 12px; border-radius: 20px;
+  border: 1px solid var(--border-dim);
+  background: var(--bg-s);
+}
+
+/* ── THINKING BLOCK ── */
+.thinking-block {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--bg-s);
+}
+.think-toggle {
+  width: 100%; padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  background: transparent; cursor: pointer;
+  font-size: 13px; color: var(--text-soft);
+  transition: .12s; text-align: left;
+}
+.think-toggle:hover { background: var(--bg-hover); color: var(--text); }
+.think-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--mila); flex-shrink: 0;
+}
+.think-dot.running { animation: pulse 1.2s infinite; }
+.think-dot.done { background: var(--ok); animation: none; }
+.think-dot.error { background: var(--err); animation: none; }
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(.8); }
+}
+.think-label { flex: 1; font-size: 12.5px; }
+.think-chevron { font-size: 10px; transition: transform .2s; flex-shrink: 0; color: var(--text-dim); }
+.thinking-block.open .think-chevron { transform: rotate(180deg); }
+
+.think-content {
+  border-top: 1px solid var(--border-dim);
+  display: none;
+  flex-direction: column;
+}
+.thinking-block.open .think-content { display: flex; }
+
+/* Agent step */
+.agent-step {
+  border-bottom: 1px solid var(--border-dim);
+}
+.agent-step:last-child { border-bottom: none; }
+.step-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; cursor: pointer; transition: .12s;
+}
+.step-header:hover { background: var(--bg-hover); }
+.step-icon { font-size: 13px; flex-shrink: 0; }
+.step-name { font-size: 12.5px; font-weight: 500; color: var(--text-soft); flex: 1; }
+.step-model-badge {
+  font-family: var(--mono); font-size: 9px;
+  padding: 1px 6px; border-radius: 4px;
+  background: rgba(255,255,255,.05); color: var(--text-mid);
+  border: 1px solid var(--border-dim); flex-shrink: 0;
+}
+.step-status { font-size: 11px; flex-shrink: 0; }
+.step-status.running { color: var(--warn); animation: fadepulse 1.2s infinite; }
+.step-status.done { color: var(--ok); animation: none; }
+.step-status.error { color: var(--err); animation: none; }
+@keyframes fadepulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.step-time { font-size: 10.5px; color: var(--text-dim); flex-shrink: 0; font-family: var(--mono); }
+.step-expand-btn {
+  font-size: 10px; color: var(--text-dim); flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: var(--rs);
+  display: flex; align-items: center; justify-content: center;
+  transition: .12s;
+}
+.step-expand-btn:hover { background: var(--bg-hover); color: var(--text); }
+.step-output {
+  padding: 0 14px 12px;
+  font-family: var(--mono); font-size: 11.5px;
+  color: var(--text-mid); line-height: 1.6;
+  max-height: 360px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-word;
+  background: var(--bg);
+  border-top: 1px solid var(--border-dim);
+}
+
+/* ── MILA RESPONSE ── */
+.mila-response {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text);
+}
+.mila-response h1,.mila-response h2,.mila-response h3 {
+  font-weight: 600; margin: 16px 0 8px;
+  color: var(--text);
+}
+.mila-response h1 { font-size: 18px; }
+.mila-response h2 { font-size: 16px; }
+.mila-response h3 { font-size: 14px; }
+.mila-response p { margin: 0 0 10px; }
+.mila-response p:last-child { margin-bottom: 0; }
+.mila-response strong { font-weight: 600; color: var(--text); }
+.mila-response em { font-style: italic; color: var(--text-soft); }
+.mila-response ul, .mila-response ol { padding-left: 20px; margin: 6px 0 10px; }
+.mila-response li { margin: 3px 0; }
+.mila-response code {
+  font-family: var(--mono); font-size: 12.5px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 5px; color: var(--mila);
+}
+.mila-response pre {
+  background: #0d0d1a; border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+  margin: 12px 0; position: relative;
+}
+.mila-response pre .code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px; background: rgba(255,255,255,.04);
+  border-bottom: 1px solid var(--border);
+}
+.mila-response pre .code-lang {
+  font-size: 10.5px; font-family: var(--mono); color: var(--text-dim);
+}
+.mila-response pre .code-copy {
+  font-size: 11px; color: var(--text-mid); padding: 2px 8px;
+  border-radius: var(--rs); border: 1px solid var(--border);
+  transition: .12s; background: transparent;
+}
+.mila-response pre .code-copy:hover { color: var(--text); border-color: var(--border-mid); }
+.mila-response pre code {
+  display: block; padding: 14px; font-size: 12.5px;
+  background: transparent; border: none; border-radius: 0;
+  white-space: pre; overflow-x: auto; color: var(--text);
+}
+.mila-response .emoji-num { margin-right: 6px; }
+.cursor-blink::after {
+  content: '▌'; animation: blink .7s step-start infinite;
+  color: var(--mila); font-size: 13px;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── FILE LINKS ── */
+.file-links {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+}
+.file-link-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--rs);
+  border: 1px solid var(--border); background: var(--bg-card);
+  font-size: 12px; font-family: var(--mono);
+  color: var(--text-soft); cursor: pointer; transition: .12s;
+}
+.file-link-btn:hover { border-color: var(--kenji); color: var(--kenji); }
+
+/* ── SESSION STATS ── */
+.session-stats {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--r);
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-size: 12px;
+}
+.stat-item { display: flex; align-items: center; gap: 5px; color: var(--text-soft); }
+.stat-item .stat-val { font-weight: 600; color: var(--text); }
+.stat-divider { width: 1px; height: 14px; background: var(--border); }
+
+/* ─── REVISION / NEO badges ─── */
+.event-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11.5px; font-weight: 500;
+}
+.event-badge.revision { background: rgba(251,191,36,.1); color: var(--rex); border: 1px solid rgba(251,191,36,.25); }
+.event-badge.neo { background: rgba(248,113,113,.1); color: var(--neo); border: 1px solid rgba(248,113,113,.25); }
+.event-badge.watchdog { background: rgba(239,68,68,.12); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+
+/* ─── CLARIFICATION CARD ─── */
+.clarification-card {
+  background: linear-gradient(135deg, rgba(129,140,248,.08), rgba(99,102,241,.05));
+  border: 1px solid rgba(129,140,248,.25);
+  border-radius: var(--rl);
+  padding: 16px 18px;
+  margin-bottom: 10px;
+}
+.clarification-header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--mila);
+  margin-bottom: 14px;
+}
+.clarification-header .clar-icon { font-size: 16px; }
+.clarification-questions { display: flex; flex-direction: column; gap: 12px; }
+.clar-q {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.clar-q label {
+  font-size: 13px; color: var(--text-soft); line-height: 1.45;
+}
+.clar-q input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--r);
+  padding: 8px 12px;
+  font-size: 13px; color: var(--text);
+  outline: none;
+  transition: border-color .2s;
+}
+.clar-q input:focus { border-color: var(--mila); }
+.clar-q input::placeholder { color: var(--text-mid); }
+.clar-send-btn {
+  margin-top: 14px;
+  background: var(--mila);
+  color: #fff;
+  border-radius: var(--r);
+  padding: 9px 20px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s, transform .1s;
+}
+.clar-send-btn:hover { opacity: .85; }
+.clar-send-btn:active { transform: scale(.97); }
+.clar-send-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ═══════════════════════════════════════════════════════
+   INPUT AREA
+═══════════════════════════════════════════════════════ */
+.input-area {
+  border-top: 1px solid var(--border);
+  padding: 14px 24px 18px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.input-inner { max-width: 780px; margin: 0 auto; }
+
+.input-box {
+  display: flex; align-items: flex-end; gap: 10px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--rl); padding: 10px 12px;
+  transition: border-color .15s;
+}
+.input-box:focus-within { border-color: var(--mila); box-shadow: 0 0 0 3px var(--mila-dim); }
+
+.main-textarea {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-size: 14px; color: var(--text); resize: none;
+  min-height: 24px; max-height: 200px; line-height: 1.5;
+  font-family: var(--ui); padding: 0;
+}
+.main-textarea::placeholder { color: var(--text-dim); }
+
+.send-btn {
+  width: 34px; height: 34px; border-radius: var(--rs);
+  background: var(--mila); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: .15s; font-size: 14px;
+}
+.send-btn:hover:not(:disabled) { background: #6366f1; box-shadow: 0 0 12px var(--mila-glow); }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; }
+.send-btn.stop { background: var(--err); }
+.send-btn.stop:hover { background: #dc2626; }
+
+.input-hint {
+  margin-top: 8px; font-size: 11px; color: var(--text-dim);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ws-status { display: flex; align-items: center; gap: 5px; }
+.ws-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ok); }
+.ws-dot.disconnected { background: var(--err); }
+.ws-dot.connecting { background: var(--warn); animation: pulse 1s infinite; }
+
+/* ═══════════════════════════════════════════════════════
+   RIGHT AGENT PANEL
+═══════════════════════════════════════════════════════ */
+.agent-panel {
+  width: var(--panel-w);
+  border-left: 1px solid var(--border);
+  background: var(--bg-s);
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width .2s ease;
+}
+.agent-panel.collapsed { width: 0; border-left: none; }
+
+.panel-header {
+  height: 44px; display: flex; align-items: center;
+  padding: 0 10px; border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; color: var(--text-soft); gap: 4px;
+  flex-shrink: 0;
+}
+/* Right panel tabs */
+.panel-tab-btn {
+  flex: 1; padding: 6px 0; border-radius: var(--rs);
+  font-size: 11.5px; color: var(--text-dim); font-weight: 500;
+  text-align: center; transition: .12s; cursor: pointer;
+}
+.panel-tab-btn:hover { color: var(--text-soft); background: var(--bg-hover); }
+.panel-tab-btn.active { color: var(--text); background: var(--bg-hover); }
+.panel-tab-content { display: none; flex: 1; overflow-y: auto; padding: 8px; }
+.panel-tab-content.active { display: flex; flex-direction: column; }
+.panel-scroll { flex: 1; overflow-y: auto; padding: 8px; }
+
+.agent-card {
+  border: 1px solid var(--border-dim); border-radius: var(--r);
+  background: var(--bg); margin-bottom: 6px; overflow: hidden;
+}
+.agent-card-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; cursor: pointer;
+}
+.agent-card-header:hover { background: var(--bg-hover); }
+.ac-icon { font-size: 14px; flex-shrink: 0; }
+.ac-name { font-size: 12.5px; font-weight: 500; flex: 1; }
+.ac-status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text-dim); flex-shrink: 0;
+}
+.ac-status-dot.running { background: var(--warn); animation: pulse 1s infinite; }
+.ac-status-dot.done    { background: var(--ok); }
+.ac-status-dot.error   { background: var(--err); }
+.ac-time { font-size: 10px; color: var(--text-dim); font-family: var(--mono); flex-shrink: 0; }
+.ac-model {
+  font-size: 9.5px; color: var(--text-dim); font-family: var(--mono);
+  padding: 1px 5px; border: 1px solid var(--border-dim); border-radius: 3px;
+}
+.ac-preview {
+  padding: 0 12px 10px; font-size: 11px; color: var(--text-mid);
+  font-family: var(--mono); line-height: 1.5;
+  max-height: 80px; overflow: hidden;
+  position: relative;
+}
+.ac-preview::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 24px; background: linear-gradient(transparent, var(--bg));
+}
+.ac-view-btn {
+  display: block; width: calc(100% - 24px); margin: 0 12px 10px;
+  padding: 5px; border-radius: var(--rs); font-size: 11.5px;
+  border: 1px solid var(--border); color: var(--text-mid);
+  text-align: center; transition: .12s;
+}
+.ac-view-btn:hover { border-color: var(--border-mid); color: var(--text); background: var(--bg-hover); }
+
+/* ═══════════════════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; backdrop-filter: blur(4px);
+  animation: fadeIn .15s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--rl); overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  display: flex; flex-direction: column;
+  max-height: 90vh;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: 15px; flex-shrink: 0;
+}
+.modal-close {
+  width: 26px; height: 26px; border-radius: var(--rs);
+  color: var(--text-dim); font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: .12s;
+}
+.modal-close:hover { background: var(--bg-hover); color: var(--text); }
+.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+.modal-lg { width: min(860px, 96vw); }
+.modal-md { width: min(520px, 96vw); }
+.modal-sm { width: min(380px, 96vw); }
+
+/* Settings modal */
+.settings-section { margin-bottom: 28px; }
+.settings-section-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-dim); font-weight: 600; margin-bottom: 12px;
+}
+.setting-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border-dim);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-label { width: 120px; flex-shrink: 0; font-size: 13px; color: var(--text-soft); }
+.setting-agent-icon { margin-right: 4px; }
+.setting-control { flex: 1; }
+.setting-select {
+  width: 100%; padding: 7px 10px; border-radius: var(--rs);
+  background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text); font-size: 12.5px; font-family: var(--mono);
+  outline: none;
+}
+.setting-select:focus { border-color: var(--mila); }
+.setting-temp-row { display: flex; align-items: center; gap: 10px; }
+.setting-temp-row input[type=range] {
+  flex: 1; height: 3px; -webkit-appearance: none;
+  background: var(--border); border-radius: 2px; outline: none;
+}
+.setting-temp-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--mila); cursor: pointer;
+}
+.setting-temp-val {
+  font-family: var(--mono); font-size: 12px; color: var(--text-mid);
+  width: 30px; text-align: right;
+}
+.apply-btn {
+  padding: 6px 14px; border-radius: var(--rs);
+  background: var(--mila); color: #fff; font-size: 12px;
+  transition: .12s; flex-shrink: 0;
+}
+.apply-btn:hover { background: #6366f1; }
+.saved-badge {
+  font-size: 11px; color: var(--ok); padding: 2px 8px;
+  border-radius: 20px; background: rgba(16,185,129,.1);
+  border: 1px solid rgba(16,185,129,.25); opacity: 0;
+  transition: opacity .3s;
+}
+.saved-badge.visible { opacity: 1; }
+
+/* Supervisor model picker */
+.model-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.model-tab {
+  padding: 5px 14px; border-radius: var(--rs); font-size: 12.5px;
+  border: 1px solid var(--border); color: var(--text-mid); transition: .12s;
+}
+.model-tab.active { border-color: var(--mila); color: var(--mila); background: var(--mila-dim); }
+.model-list { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; }
+.model-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--rs);
+  border: 1px solid var(--border-dim); background: var(--bg);
+  cursor: pointer; transition: .12s;
+}
+.model-item:hover { border-color: var(--border-mid); background: var(--bg-hover); }
+.model-item.selected { border-color: var(--mila); background: var(--mila-dim); }
+.mi-icon { font-size: 14px; flex-shrink: 0; }
+.mi-label { flex: 1; font-size: 12.5px; color: var(--text-soft); }
+.mi-label strong { color: var(--text); }
+.mi-check { color: var(--mila); font-size: 13px; }
+
+/* File viewer */
+.file-viewer-pre {
+  background: #0d0d1a; border-radius: var(--r);
+  padding: 16px; font-family: var(--mono); font-size: 12.5px;
+  line-height: 1.65; color: var(--text); overflow: auto;
+  max-height: calc(90vh - 140px);
+}
+
+/* Agent output modal */
+.agent-out-pre {
+  background: var(--bg); border-radius: var(--r);
+  padding: 16px; font-family: var(--mono); font-size: 12px;
+  line-height: 1.65; color: var(--text-soft); overflow: auto;
+  max-height: calc(90vh - 140px); white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Sup badge modal selector */
+.sup-selector-modal { width: min(480px, 96vw); }
+
+/* ── misc ── */
+.no-sessions { font-size: 12px; color: var(--text-dim); padding: 8px 12px; font-style: italic; }
+.workspace-badge {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10.5px; color: var(--text-dim);
+  padding: 5px 10px; border-radius: var(--rs);
+  border: 1px solid var(--border-dim); background: var(--bg-s);
+  margin: 0 8px 8px;
+}
+
+/* ════════════════════════════════════════════════════════
+   PROPERTY SEARCH MODE
+════════════════════════════════════════════════════════ */
+#property-area { display: none; flex-direction: column; height: 100%; }
+#property-area.active { display: flex; }
+#chat-area { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+#chat-area.hidden { display: none; }
+
+.prop-results-area {
+  flex: 1; overflow-y: auto; padding: 20px 24px;
+}
+.prop-results-inner { max-width: 900px; margin: 0 auto; }
+
+.prop-status-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: var(--r);
+  margin-bottom: 16px; font-size: 13px; color: var(--text-soft);
+}
+.prop-status-dot { width: 8px; height: 8px; border-radius: 50%;
+  background: var(--warn); animation: pulse 1s infinite; flex-shrink: 0; }
+.prop-status-dot.done { background: var(--ok); animation: none; }
+
+.prop-summary {
+  padding: 14px 18px; background: rgba(129,140,248,.07);
+  border: 1px solid rgba(129,140,248,.18); border-radius: var(--r);
+  font-size: 14px; color: var(--text-soft); line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.prop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.prop-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--rl); overflow: hidden;
+  transition: border-color .2s, transform .15s, box-shadow .2s;
+  cursor: pointer;
+}
+.prop-card:hover {
+  border-color: var(--border-mid);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.3);
+}
+.prop-card-img {
+  width: 100%; height: 160px; object-fit: cover;
+  background: var(--bg-s);
+}
+.prop-card-img-placeholder {
+  width: 100%; height: 160px;
+  background: linear-gradient(135deg, var(--bg-s), var(--bg-hover));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; color: var(--text-dim);
+}
+.prop-card-body { padding: 14px; }
+.prop-card-price {
+  font-size: 18px; font-weight: 700; color: var(--text);
+  margin-bottom: 4px;
+}
+.prop-card-title {
+  font-size: 13px; color: var(--text-soft); margin-bottom: 8px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.prop-card-attrs {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.prop-attr {
+  font-size: 11.5px; padding: 2px 8px; border-radius: 12px;
+  background: var(--bg-hover); color: var(--text-mid);
+  border: 1px solid var(--border-dim);
+}
+.prop-card-location {
+  font-size: 12px; color: var(--text-dim);
+  display: flex; align-items: center; gap: 4px;
+  margin-bottom: 10px;
+}
+.prop-distances { display: flex; flex-direction: column; gap: 4px; }
+.prop-distance-item {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11.5px; padding: 4px 8px; border-radius: var(--rs);
+  background: rgba(34,211,238,.06); border: 1px solid rgba(34,211,238,.15);
+}
+.prop-dist-poi { color: var(--text-mid); }
+.prop-dist-val { color: var(--zara); font-weight: 500; font-family: var(--mono); }
+.prop-card-footer {
+  padding: 8px 14px; border-top: 1px solid var(--border-dim);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.prop-view-btn {
+  font-size: 12px; color: var(--mila); text-decoration: none;
+  padding: 4px 10px; border: 1px solid var(--mila-glow);
+  border-radius: var(--rs); transition: .12s;
+}
+.prop-view-btn:hover { background: var(--mila-dim); }
+
+.prop-welcome {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 40px 24px;
+}
+.prop-welcome-icon { font-size: 52px; margin-bottom: 16px; }
+.prop-welcome-title { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+.prop-welcome-sub { font-size: 14px; color: var(--text-soft); max-width: 480px; line-height: 1.6; margin-bottom: 24px; }
+.prop-suggestions { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 500px; }
+.prop-suggestion {
+  padding: 10px 16px; border-radius: var(--r);
+  border: 1px solid var(--border); background: var(--bg-card);
+  font-size: 13px; color: var(--text-soft); text-align: left;
+  cursor: pointer; transition: .12s;
+}
+.prop-suggestion:hover { border-color: var(--warn); color: var(--text); }
+
+.prop-search-count {
+  font-size: 13px; color: var(--text-dim); margin-bottom: 12px;
+}
+.prop-src-link { font-size: 11.5px; color: var(--text-dim); }
+.prop-src-link a { color: var(--mila); }
+
+/* Input mode için prop placeholder değişimi */
+.input-mode-code .main-textarea::placeholder { content: "Mila'ya bir görev ver..."; }
+.input-mode-prop .main-textarea { }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════ -->
+<header class="header">
+  <div class="header-left">
+    <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Sidebar'ı aç/kapat">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <rect x="1" y="3" width="14" height="1.5" rx=".75"/>
+        <rect x="1" y="7.25" width="14" height="1.5" rx=".75"/>
+        <rect x="1" y="11.5" width="14" height="1.5" rx=".75"/>
+      </svg>
+    </button>
+    <div class="logo">
+      <div class="logo-mark">M</div>
+      <div class="logo-text"><span>Agent</span> System</div>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <!-- Mode Switcher -->
+    <div class="mode-switcher">
+      <button class="mode-btn code active" id="mode-code" onclick="switchAppMode('code')">💻 Kod</button>
+      <button class="mode-btn prop" id="mode-prop" onclick="switchAppMode('property')">🏠 İlan Arama</button>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <button class="sup-badge" id="sup-badge" onclick="openSupModal()" style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11.5px;color:var(--text-soft);cursor:pointer;transition:.15s;max-width:200px;">
+      <span class="sup-dot" id="net-dot" style="width:6px;height:6px;border-radius:50%;background:var(--ok);flex-shrink:0;"></span>
+      <span id="sup-model-text" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">bağlanıyor...</span>
+      <span style="color:var(--text-dim);font-size:10px;flex-shrink:0;">▼</span>
+    </button>
+    <button class="hbtn" id="btn-panel" onclick="togglePanel()">
+      <span>🗂</span><span>Panel</span>
+    </button>
+    <button class="hbtn" onclick="openSettings()">
+      <span>⚙</span><span>Ayarlar</span>
+    </button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════
+     APP BODY
+═══════════════════════════════════════════════════ -->
+<div class="app-body">
+
+  <!-- ── LEFT SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <button class="new-chat-btn" onclick="newChat()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
+        </svg>
+        Yeni Oturum
+      </button>
+    </div>
+
+    <div class="sidebar-scroll">
+      <!-- Memory recall indicator (shown when past session used) -->
+      <div id="memory-recall-badge" class="memory-badge" style="display:none;">
+        📚 <span id="memory-recall-text">Benzer geçmiş oturum kullanıldı</span>
+      </div>
+      <!-- Conversations grouped by date -->
+      <div id="history-list"><div class="no-sessions" style="padding:16px 14px;font-size:12.5px;">Henüz konuşma yok</div></div>
+    </div>
+  </aside>
+
+  <!-- ── CHAT MAIN ── -->
+  <main class="chat-main">
+
+    <!-- ── PROPERTY SEARCH MODE ── -->
+    <div id="property-area">
+      <div class="prop-results-area" id="prop-results-area">
+        <div class="prop-results-inner" id="prop-results-inner">
+          <!-- Welcome / results rendered here by JS -->
+          <div id="prop-welcome" class="prop-welcome">
+            <div class="prop-welcome-icon">🏠</div>
+            <div class="prop-welcome-title">İlan Arama</div>
+            <div class="prop-welcome-sub">
+              sahibinden.com'dan istediğiniz özelliklere göre ilan arar, detaylarını çeker ve metro/ulaşıma olan mesafeyi hesaplarım.
+            </div>
+            <div class="prop-suggestions">
+              <button class="prop-suggestion" onclick="fillPropInput('Kadıköy 2+1 kiralık daire 10000-15000 TL, metroya yürüme mesafesi')">Kadıköy 2+1 kiralık daire 10000-15000 TL, metroya mesafe</button>
+              <button class="prop-suggestion" onclick="fillPropInput('Beşiktaş satılık 3+1 daire 5 milyon TL altı')">Beşiktaş satılık 3+1 daire 5 milyon TL altı</button>
+              <button class="prop-suggestion" onclick="fillPropInput('Ataşehir kiralık ofis 50-100 m2 uygun fiyatlı')">Ataşehir kiralık ofis 50-100 m² uygun fiyatlı</button>
+              <button class="prop-suggestion" onclick="fillPropInput('Üsküdar kiralık daire, Marmaray ve Üsküdar iskelesine yakın')">Üsküdar kiralık daire, Marmaray ve iskeleye yakın</button>
+            </div>
+          </div>
+          <div id="prop-content" style="display:none;">
+            <div id="prop-status-bar" class="prop-status-bar" style="display:none;">
+              <div class="prop-status-dot" id="prop-status-dot"></div>
+              <span id="prop-status-text">Aranıyor...</span>
+            </div>
+            <div id="prop-summary" class="prop-summary" style="display:none;"></div>
+            <div id="prop-count" class="prop-search-count"></div>
+            <div id="prop-grid" class="prop-grid"></div>
+            <div id="prop-src" class="prop-src-link" style="margin-top:12px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CODE / CHAT MODE ── -->
+    <div id="chat-area">
+    <div class="messages-area" id="messages-area">
+      <div class="messages-inner" id="messages-inner">
+
+        <!-- Welcome screen (shown until first message) -->
+        <div class="welcome-screen" id="welcome-screen">
+          <div class="welcome-logo">M</div>
+          <div class="welcome-title">Merhaba, ben Mila</div>
+          <div class="welcome-sub">Çoklu-ajan kodlama sisteminizin yöneticisiyim. Bir hedef belirtin — planı yapayım, ajanları koordine edeyim.</div>
+          <div class="welcome-suggestions">
+            <button class="suggestion-btn" onclick="fillInput('Flask ile kullanıcı kayıt ve giriş sistemi olan bir REST API yaz')">Flask ile kullanıcı kayıt ve giriş sistemi olan bir REST API yaz</button>
+            <button class="suggestion-btn" onclick="fillInput('Vanilla HTML/CSS/JS ile modern bir todo uygulaması yap')">Vanilla HTML/CSS/JS ile modern bir todo uygulaması yap</button>
+            <button class="suggestion-btn" onclick="fillInput('Python ile dosya yönetim aracı yaz, CLI ile çalışsın')">Python ile dosya yönetim aracı yaz, CLI ile çalışsın</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    </div><!-- end chat-area -->
+
+    <div class="input-area">
+      <div class="input-inner">
+        <div class="input-box">
+          <textarea class="main-textarea" id="main-input"
+            placeholder="Mila'ya bir görev ver..."
+            rows="1"
+            onkeydown="onInputKey(event)"
+            oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="handleSend()" title="Gönder (Ctrl+Enter)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M14.5 8L2 14l2.5-6H14.5zM2 2l12.5 6H4.5L2 2z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="input-hint">
+          <div class="ws-status">
+            <div class="ws-dot connecting" id="ws-dot"></div>
+            <span id="ws-label">Bağlanıyor...</span>
+          </div>
+          <span id="input-hint-text">Ctrl+Enter · gönder</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── RIGHT PANEL (Ajanlar + Dosyalar) ── -->
+  <aside class="agent-panel collapsed" id="agent-panel">
+    <div class="panel-header">
+      <button class="panel-tab-btn active" id="ptab-agents" onclick="switchPanelTab('agents')">🤖 Ajanlar</button>
+      <button class="panel-tab-btn" id="ptab-files"  onclick="switchPanelTab('files')">📁 Dosyalar</button>
+    </div>
+
+    <!-- Ajanlar Tab -->
+    <div class="panel-tab-content active" id="ptab-content-agents">
+      <div id="panel-scroll">
+        <!-- Agent cards built by JS -->
+      </div>
+    </div>
+
+    <!-- Dosyalar Tab -->
+    <div class="panel-tab-content" id="ptab-content-files">
+      <div class="workspace-badge" style="margin:0 0 8px;">🔒 workspace/</div>
+      <div class="file-tree" id="file-tree"></div>
+      <div id="file-tree-empty" class="file-empty" style="display:none;">Henüz dosya yok</div>
+    </div>
+  </aside>
+
+</div><!-- end app-body -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   CONSTANTS & STATE
+═══════════════════════════════════════════════════════ */
+const AGENTS = [
+  { id:'researcher', name:'Aria',  icon:'🔬', color:'var(--aria)',  colorD:'var(--aria-d)'  },
+  { id:'coder',      name:'Kenji', icon:'⚙️', color:'var(--kenji)', colorD:'var(--kenji-d)' },
+  { id:'reviewer',   name:'Rex',   icon:'🔍', color:'var(--rex)',   colorD:'var(--rex-d)'   },
+  { id:'tester',     name:'Zara',  icon:'🧪', color:'var(--zara)',  colorD:'var(--zara-d)'  },
+  { id:'debugger',   name:'Neo',   icon:'🐛', color:'var(--neo)',   colorD:'var(--neo-d)'   },
+];
+
+const state = {
+  ws: null,
+  connected: false,
+  running: false,
+  clarifying: false,      // true when waiting for clarification answers
+  mode: 'idle',           // 'idle' | 'running' | 'completed'
+  appMode: 'code',        // 'code' | 'property'
+  activePanel: 'agents',  // 'agents' | 'files'
+  sessionCount: 0,
+  currentMsgId: null,     // current Mila message DOM id
+  reviewPhase: false,     // true when supervisor.review_start fired
+  agentOutputs: {},       // agentId -> full text output
+  agentTimers: {},        // agentId -> intervalId
+  agentStartMs: {},       // agentId -> startTimestamp
+  planTasks: [],          // current plan task list
+  wsRetries: 0,
+  supInfo: {},
+};
+
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════════════════════════════════════
+   WEBSOCKET
+═══════════════════════════════════════════════════════ */
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws`);
+  state.ws = ws;
+  setWsDot('connecting');
+
+  ws.onopen = () => {
+    state.connected = true;
+    state.wsRetries = 0;
+    setWsDot('ok');
+    ws.send(JSON.stringify({type:'ping'}));
+  };
+
+  ws.onclose = () => {
+    state.connected = false;
+    setWsDot('disconnected');
+    if (state.wsRetries < 5) {
+      state.wsRetries++;
+      setTimeout(connect, 3000);
+    }
+  };
+
+  ws.onerror = () => {
+    setWsDot('disconnected');
+  };
+
+  ws.onmessage = e => {
+    try { handleEvent(JSON.parse(e.data)); } catch(err) { console.error(err); }
+  };
+}
+
+function send(obj) {
+  if (state.ws && state.connected) state.ws.send(JSON.stringify(obj));
+}
+
+function setWsDot(status) {
+  const dot = $('ws-dot'), lbl = $('ws-label');
+  dot.className = 'ws-dot ' + (status === 'ok' ? '' : status);
+  lbl.textContent = status === 'ok' ? 'Bağlı' : status === 'connecting' ? 'Bağlanıyor...' : 'Bağlantı kesildi';
+}
+
+/* ═══════════════════════════════════════════════════════
+   EVENT HANDLER
+═══════════════════════════════════════════════════════ */
+function handleEvent(ev) {
+  const { type, data } = ev;
+  switch(type) {
+    case 'ready':              onReady(data); break;
+    case 'session.start':      onSessionStart(data); break;
+    case 'supervisor.plan_start': onPlanStart(); break;
+    case 'supervisor.stream':  onSupStream(data); break;
+    case 'plan.created':       onPlanCreated(data); break;
+    case 'group.start':        break; // silent
+    case 'task.start':         onTaskStart(data); break;
+    case 'task.stream':        onTaskStream(data); break;
+    case 'task.complete':      onTaskComplete(data); break;
+    case 'task.model_override':onModelOverride(data); break;
+    case 'supervisor.review_start': onReviewStart(); break;
+    case 'supervisor.done':    onSupDone(data); break;
+    case 'session.complete':   onSessionComplete(data); break;
+    case 'workspace.files_saved': onFilesSaved(data); break;
+    case 'revision.start':     onRevision(data); break;
+    case 'neo.triggered':      onNeo(data); break;
+    case 'stopped':            onStopped(); break;
+    case 'supervisor_changed': onSupChanged(data); break;
+    case 'agent_config_changed': break;
+    case 'mila.message_received': break;
+    case 'supervisor.clarification_needed': onClarificationNeeded(data); break;
+    case 'clarification_received': onClarificationReceived(); break;
+    case 'watchdog.timeout':   onWatchdogEvent(data, 'timeout'); break;
+    case 'watchdog.repetition':onWatchdogEvent(data, 'repetition'); break;
+    case 'property.status':    onPropertyStatus(data); break;
+    case 'property.done':      onPropertyDone(data); break;
+    case 'property.results':   onPropertyResults(data); break;
+    case 'pong': break;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SESSION EVENTS
+═══════════════════════════════════════════════════════ */
+function onReady(data) {
+  state.supInfo = data;
+  updateSupBadge(data.supervisor_model || data.supervisor_provider, data.online);
+}
+
+function onSessionStart(data) {
+  state.running = true;
+  state.mode = 'running';
+  state.reviewPhase = false;
+  state.agentOutputs = {};
+  state.planTasks = [];
+  AGENTS.forEach(a => { state.agentStartMs[a.id] = 0; });
+  hideWelcome();
+  updateSendBtn();
+  refreshAgentPanel('idle');
+  // Memory recall indicator
+  if (data && data.memory_recalled) {
+    showMemoryRecall('📚 Benzer geçmiş oturum hafızadan alındı');
+  }
+}
+
+function onPlanStart() {
+  // Update thinking block label
+  const think = $('think-' + state.currentMsgId);
+  if (!think) return;
+  setThinkLabel(think, 'running', 'Mila analiz ediyor...');
+}
+
+function onSupStream(data) {
+  if (!state.reviewPhase) return; // planning phase: suppress raw JSON
+  const respEl = $('resp-' + state.currentMsgId);
+  if (!respEl) return;
+  // Accumulate
+  if (!respEl.dataset.raw) respEl.dataset.raw = '';
+  respEl.dataset.raw += (data.chunk || '');
+  respEl.classList.add('cursor-blink');
+  respEl.innerHTML = renderMarkdown(respEl.dataset.raw);
+  scrollBottom();
+}
+
+function onPlanCreated(data) {
+  state.planTasks = data.tasks || [];
+  const think = $('think-' + state.currentMsgId);
+  if (!think) return;
+  setThinkLabel(think, 'running', `${data.tasks.length} görev planlandı`);
+  // Open thinking block
+  think.classList.add('open');
+  const content = think.querySelector('.think-content');
+  if (!content) return;
+  content.innerHTML = '';
+  // Create agent steps
+  (data.tasks || []).forEach(task => {
+    const step = createAgentStep(task);
+    content.appendChild(step);
+  });
+  scrollBottom();
+}
+
+function onTaskStart(data) {
+  const step = getStep(data.task_id, data.agent_type);
+  if (step) setStepStatus(step, 'running');
+  // Start timer in panel card
+  startAgentTimer(data.agent_type);
+  updateAgentCard(data.agent_type, 'running');
+}
+
+function onTaskStream(data) {
+  const chunk = data.chunk || '';
+  const agentId = data.agent_type;
+  if (!state.agentOutputs[agentId]) state.agentOutputs[agentId] = '';
+  state.agentOutputs[agentId] += chunk;
+  // Append to step output
+  const step = getStep(data.task_id, agentId);
+  if (step) {
+    const outEl = step.querySelector('.step-output');
+    if (outEl) outEl.textContent = state.agentOutputs[agentId].slice(-2000);
+  }
+  // Update panel card preview
+  const preview = $('ac-preview-' + agentId);
+  if (preview) preview.textContent = (state.agentOutputs[agentId] || '').slice(-300);
+}
+
+function onTaskComplete(data) {
+  const step = getStep(data.task_id, data.agent_type);
+  if (step) setStepStatus(step, data.success ? 'done' : 'error');
+  stopAgentTimer(data.agent_type);
+  updateAgentCard(data.agent_type, data.success ? 'done' : 'error');
+}
+
+function onModelOverride(data) {
+  // Update step model badge
+  const msgEl = $(state.currentMsgId);
+  if (!msgEl) return;
+  const steps = msgEl.querySelectorAll('.agent-step');
+  steps.forEach(s => {
+    if (s.dataset.agent === data.agent_type) {
+      let badge = s.querySelector('.step-model-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'step-model-badge';
+        const header = s.querySelector('.step-header');
+        const nameEl = header.querySelector('.step-name');
+        nameEl.insertAdjacentElement('afterend', badge);
+      }
+      const mdl = (data.model || '').split(':').slice(1).join(':') || data.model;
+      badge.textContent = mdl;
+      badge.style.color = 'var(--warn)';
+    }
+  });
+  // Also update panel card
+  const cardModel = $('ac-model-' + data.agent_type);
+  if (cardModel) {
+    const mdl = (data.model || '').split(':').slice(1).join(':') || data.model;
+    cardModel.textContent = mdl;
+    cardModel.style.color = 'var(--warn)';
+  }
+}
+
+function onReviewStart() {
+  state.reviewPhase = true;
+  const think = $('think-' + state.currentMsgId);
+  if (think) {
+    setThinkLabel(think, 'running', 'Mila değerlendiriyor...');
+    think.classList.remove('open'); // Collapse during final review
+  }
+}
+
+function onSupDone(data) {
+  const respEl = $('resp-' + state.currentMsgId);
+  if (respEl) {
+    respEl.classList.remove('cursor-blink');
+    if (data.output && !respEl.dataset.raw) {
+      // Fallback: if stream wasn't captured, use done output
+      respEl.innerHTML = renderMarkdown(data.output);
+    }
+  }
+  const think = $('think-' + state.currentMsgId);
+  if (think) {
+    const doneCount = think.querySelectorAll('.agent-step[data-status=done]').length;
+    const totalCount = think.querySelectorAll('.agent-step').length;
+    setThinkLabel(think, 'done', `${totalCount} adım tamamlandı`);
+  }
+}
+
+function onSessionComplete(data) {
+  state.running = false;
+  state.mode = 'completed';
+  updateSendBtn();
+  // Show session stats
+  addSessionStats(data);
+  // Save to history
+  const goal = document.querySelector('.msg-user .msg-content-wrap');
+  if (goal) saveHistory(goal.textContent.trim(), data);
+  // Refresh files
+  loadWorkspaceFiles();
+  scrollBottom();
+}
+
+function onFilesSaved(data) {
+  const filesEl = $('files-' + state.currentMsgId);
+  if (!filesEl) return;
+  filesEl.hidden = false;
+  (data.files || []).forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'file-link-btn';
+    btn.innerHTML = `📄 ${esc(f.split(/[\\/]/).pop())}`;
+    btn.onclick = () => openFile(f);
+    filesEl.appendChild(btn);
+  });
+  // Refresh sidebar tree
+  loadWorkspaceFiles();
+}
+
+function onRevision(data) {
+  const msgEl = $(state.currentMsgId);
+  if (!msgEl) return;
+  const body = msgEl.querySelector('.msg-body');
+  const badge = document.createElement('div');
+  badge.innerHTML = `<span class="event-badge revision">🔄 Revizyon ${data.iteration} — ${data.verdict}</span>`;
+  body.insertBefore(badge, body.querySelector('.mila-response'));
+}
+
+function onNeo(data) {
+  const msgEl = $(state.currentMsgId);
+  if (!msgEl) return;
+  const body = msgEl.querySelector('.msg-body');
+  const badge = document.createElement('div');
+  badge.innerHTML = `<span class="event-badge neo">🐛 Neo devreye girdi — ${data.critical_count} kritik hata</span>`;
+  body.insertBefore(badge, body.querySelector('.mila-response'));
+}
+
+/* ─── CLARIFICATION ─────────────────────────────────────────────────────── */
+function onClarificationNeeded(data) {
+  const questions = data.questions || [];
+  if (!questions.length) return;
+
+  state.clarifying = true;
+
+  // Stop current spinner — waiting for user
+  const think = $('think-' + state.currentMsgId);
+  if (think) setThinkLabel(think, 'running', 'Bilgi bekleniyor...');
+
+  // Build clarification card inside the Mila message body
+  const msgEl = $(state.currentMsgId);
+  if (!msgEl) return;
+  const body = msgEl.querySelector('.msg-body');
+  const respEl = body ? body.querySelector('.mila-response') : null;
+  if (!respEl) return;
+
+  const cardId  = 'clar-' + Date.now();
+  const inputIds = questions.map((_, i) => `clar-inp-${cardId}-${i}`);
+
+  const questionsHtml = questions.map((q, i) => `
+    <div class="clar-q">
+      <label>${esc(q)}</label>
+      <input id="${inputIds[i]}" type="text" placeholder="Cevabınız..." autocomplete="off">
+    </div>`).join('');
+
+  const card = document.createElement('div');
+  card.className = 'clarification-card';
+  card.id = cardId;
+  card.innerHTML = `
+    <div class="clarification-header">
+      <span class="clar-icon">💬</span>
+      Devam edebilmem için birkaç şeyi netleştirelim:
+    </div>
+    <div class="clarification-questions">${questionsHtml}</div>
+    <button class="clar-send-btn" onclick="submitClarification('${cardId}', ${JSON.stringify(inputIds)}, ${JSON.stringify(questions)})">
+      Gönder →
+    </button>`;
+
+  // Insert before response area
+  body.insertBefore(card, respEl);
+
+  // Focus first input
+  const firstInput = document.getElementById(inputIds[0]);
+  if (firstInput) {
+    setTimeout(() => firstInput.focus(), 80);
+    // Enter on last input → submit
+    inputIds.forEach((iid, idx) => {
+      const inp = document.getElementById(iid);
+      if (inp) inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          if (idx === inputIds.length - 1) {
+            submitClarification(cardId, inputIds, questions);
+          } else {
+            const next = document.getElementById(inputIds[idx + 1]);
+            if (next) next.focus();
+          }
+        }
+      });
+    });
+  }
+
+  scrollBottom();
+}
+
+function submitClarification(cardId, inputIds, questions) {
+  const btn = document.querySelector(`#${cardId} .clar-send-btn`);
+  if (btn) btn.disabled = true;
+
+  const answers = inputIds.map(iid => {
+    const el = document.getElementById(iid);
+    return el ? el.value.trim() : '';
+  });
+
+  // Disable inputs
+  inputIds.forEach(iid => {
+    const el = document.getElementById(iid);
+    if (el) el.disabled = true;
+  });
+
+  // Send to server
+  send({ type: 'clarify', answers });
+
+  // Visual feedback
+  if (btn) btn.textContent = '✓ Gönderildi';
+  scrollBottom();
+}
+
+function onClarificationReceived() {
+  state.clarifying = false;
+  // Think block resumes
+  const think = $('think-' + state.currentMsgId);
+  if (think) setThinkLabel(think, 'running', 'Mila analiz ediyor...');
+}
+
+/* ─── WATCHDOG ──────────────────────────────────────────────────────────── */
+function onWatchdogEvent(data, kind) {
+  const msgEl = $(state.currentMsgId);
+  if (!msgEl) return;
+  const body = msgEl.querySelector('.msg-body');
+  if (!body) return;
+
+  const agentName = (data.agent_type || '').toUpperCase();
+  const reasonMap = {
+    timeout:    `🐕 Watchdog: ${agentName} ${data.stall_s || '?'}s boyunca yanıt vermedi — yeniden deneniyor`,
+    repetition: `🐕 Watchdog: ${agentName} kendini tekrar ediyordu — iptal edildi`,
+  };
+  const label = reasonMap[kind] || `🐕 Watchdog: ${agentName} iptal edildi`;
+
+  const badge = document.createElement('div');
+  badge.innerHTML = `<span class="event-badge watchdog">${label}</span>`;
+  body.insertBefore(badge, body.querySelector('.mila-response'));
+  scrollBottom();
+}
+
+function onStopped() {
+  state.running = false;
+  state.clarifying = false;
+  state.mode = 'idle';
+  updateSendBtn();
+  AGENTS.forEach(a => stopAgentTimer(a.id));
+  const think = $('think-' + state.currentMsgId);
+  if (think) setThinkLabel(think, 'error', 'Durduruldu');
+  const respEl = $('resp-' + state.currentMsgId);
+  if (respEl) respEl.classList.remove('cursor-blink');
+}
+
+function onSupChanged(data) {
+  updateSupBadge(data.model, data.online);
+  state.supInfo = data;
+}
+
+/* ═══════════════════════════════════════════════════════
+   APP MODE SWITCHER
+═══════════════════════════════════════════════════════ */
+function switchAppMode(mode) {
+  state.appMode = mode;
+
+  $('mode-code').classList.toggle('active', mode === 'code');
+  $('mode-prop').classList.toggle('active', mode === 'property');
+
+  const chatArea = $('chat-area');
+  const propArea = $('property-area');
+  const inp      = $('main-input');
+  const hintTxt  = $('input-hint-text');
+
+  if (mode === 'code') {
+    chatArea.classList.remove('hidden');
+    propArea.classList.remove('active');
+    inp.placeholder = "Mila'ya bir görev ver...";
+    if (hintTxt) hintTxt.textContent = 'Ctrl+Enter · gönder';
+  } else {
+    chatArea.classList.add('hidden');
+    propArea.classList.add('active');
+    inp.placeholder = "İlan ara: Kadıköy 2+1 kiralık daire 10000-15000 TL...";
+    if (hintTxt) hintTxt.textContent = 'Enter ile ara · sahibinden.com';
+    // Show welcome if no results yet
+    if (!$('prop-grid').children.length && !state.running) {
+      showPropWelcome();
+    }
+  }
+  updateSendBtn();
+}
+
+/* ═══════════════════════════════════════════════════════
+   PANEL TAB SWITCHER
+═══════════════════════════════════════════════════════ */
+function switchPanelTab(tab) {
+  state.activePanel = tab;
+  ['agents','files'].forEach(t => {
+    $('ptab-' + t).classList.toggle('active', t === tab);
+    $('ptab-content-' + t).classList.toggle('active', t === tab);
+  });
+  // Load file tree when switching to files tab
+  if (tab === 'files') loadWorkspaceFiles();
+}
+
+/* ═══════════════════════════════════════════════════════
+   PROPERTY SEARCH
+═══════════════════════════════════════════════════════ */
+function showPropWelcome() {
+  $('prop-welcome').style.display = 'flex';
+  $('prop-content').style.display = 'none';
+}
+
+function hidePropWelcome() {
+  $('prop-welcome').style.display = 'none';
+  $('prop-content').style.display = 'block';
+}
+
+function fillPropInput(text) {
+  const inp = $('main-input');
+  inp.value = text;
+  autoResize(inp);
+  inp.focus();
+}
+
+function sendPropertySearch(query) {
+  if (!query) return;
+  state.running = true;
+  updateSendBtn();
+
+  hidePropWelcome();
+  $('prop-grid').innerHTML = '';
+  $('prop-summary').style.display = 'none';
+  $('prop-summary').textContent = '';
+  $('prop-count').textContent = '';
+  $('prop-src').innerHTML = '';
+
+  // Show status bar
+  const statusBar = $('prop-status-bar');
+  statusBar.style.display = 'flex';
+  $('prop-status-dot').className = 'prop-status-dot';
+  $('prop-status-text').textContent = 'Aranıyor...';
+
+  send({ type: 'property_search', query });
+
+  // Geçmişe kaydet
+  saveHistoryItem('property', query);
+}
+
+function onPropertyStatus(data) {
+  const txt = $('prop-status-text');
+  if (txt) txt.textContent = data.message || '...';
+}
+
+function onPropertyDone(data) {
+  state.running = false;
+  updateSendBtn();
+
+  // Update status bar
+  const statusBar = $('prop-status-bar');
+  if (statusBar) {
+    $('prop-status-dot').className = 'prop-status-dot done';
+    $('prop-status-text').textContent = `${data.count || 0} ilan bulundu · ${data.elapsed_s || 0}s`;
+  }
+
+  // Summary
+  if (data.summary) {
+    $('prop-summary').textContent = data.summary;
+    $('prop-summary').style.display = 'block';
+  }
+
+  // Full results come with the done event
+  if (data.result) {
+    renderPropertyResults(data.result);
+  }
+}
+
+// Also handle a separate event type for full results
+function onPropertyResults(data) {
+  renderPropertyResults(data);
+}
+
+function renderPropertyResults(result) {
+  if (!result || !result.listings) return;
+  const grid = $('prop-grid');
+  grid.innerHTML = '';
+
+  if (!result.listings.length) {
+    grid.innerHTML = '<div style="color:var(--text-mid);font-size:14px;padding:20px;">Uygun ilan bulunamadı. Farklı kriterlerle tekrar deneyin.</div>';
+    return;
+  }
+
+  $('prop-count').textContent = `${result.listings.length} ilan bulundu`;
+  if (result.search_url) {
+    $('prop-src').innerHTML = `Kaynak: <a href="${esc(result.search_url)}" target="_blank" class="prop-view-btn" style="font-size:12px;">sahibinden.com'da gör ↗</a>`;
+  }
+
+  result.listings.forEach(l => {
+    const card = document.createElement('div');
+    card.className = 'prop-card';
+
+    const imgHtml = l.image_url
+      ? `<img class="prop-card-img" src="${esc(l.image_url)}" alt="${esc(l.title)}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=prop-card-img-placeholder>🏠</div>'">`
+      : `<div class="prop-card-img-placeholder">🏠</div>`;
+
+    const attrsHtml = [l.rooms, l.area, l.floor].filter(Boolean).map(a =>
+      `<span class="prop-attr">${esc(a)}</span>`
+    ).join('');
+
+    const distHtml = Object.entries(l.distances || {}).map(([poi, d]) =>
+      `<div class="prop-distance-item">
+        <span class="prop-dist-poi">🚇 ${esc(poi)}</span>
+        <span class="prop-dist-val">${esc(d.duration || '?')} · ${esc(d.distance || '')}</span>
+      </div>`
+    ).join('');
+
+    card.innerHTML = `
+      ${imgHtml}
+      <div class="prop-card-body">
+        <div class="prop-card-price">${esc(l.price || '—')}</div>
+        <div class="prop-card-title">${esc(l.title)}</div>
+        ${attrsHtml ? `<div class="prop-card-attrs">${attrsHtml}</div>` : ''}
+        ${l.location ? `<div class="prop-card-location">📍 ${esc(l.location)}</div>` : ''}
+        ${distHtml ? `<div class="prop-distances">${distHtml}</div>` : ''}
+      </div>
+      <div class="prop-card-footer">
+        <span style="font-size:11px;color:var(--text-dim);">${esc(l.listing_id || '')}</span>
+        <a href="${esc(l.url)}" target="_blank" class="prop-view-btn">Görüntüle ↗</a>
+      </div>`;
+
+    grid.appendChild(card);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR — DATE-GROUPED HISTORY
+═══════════════════════════════════════════════════════ */
+const HISTORY_KEY = 'mila_history_v2';
+
+function saveHistoryItem(mode, firstMsg) {
+  const id    = state.currentMsgId || ('s-' + Date.now());
+  const title = firstMsg.slice(0, 60) + (firstMsg.length > 60 ? '…' : '');
+  const icon  = mode === 'property' ? '🏠' : '💻';
+  const item  = { id, title, icon, ts: Date.now(), mode };
+
+  const history = getHistory();
+  // Remove duplicate if same id
+  const filtered = history.filter(h => h.id !== id);
+  filtered.unshift(item);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered.slice(0, 100)));
+  renderHistory();
+}
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function renderHistory() {
+  const list = $('history-list');
+  if (!list) return;
+  const history = getHistory();
+
+  if (!history.length) {
+    list.innerHTML = '<div class="no-sessions" style="padding:16px 14px;font-size:12.5px;">Henüz konuşma yok</div>';
+    return;
+  }
+
+  // Group by date
+  const now   = Date.now();
+  const day   = 86400000;
+  const groups = {
+    'Bugün':      [],
+    'Dün':        [],
+    'Bu Hafta':   [],
+    'Bu Ay':      [],
+    'Daha Önce':  [],
+  };
+
+  history.forEach(item => {
+    const age = now - item.ts;
+    if      (age < day)       groups['Bugün'].push(item);
+    else if (age < 2 * day)   groups['Dün'].push(item);
+    else if (age < 7 * day)   groups['Bu Hafta'].push(item);
+    else if (age < 30 * day)  groups['Bu Ay'].push(item);
+    else                      groups['Daha Önce'].push(item);
+  });
+
+  let html = '';
+  for (const [label, items] of Object.entries(groups)) {
+    if (!items.length) continue;
+    html += `<div class="hist-group-label">${label}</div>`;
+    items.forEach(item => {
+      const activeClass = item.id === state.currentMsgId ? ' active' : '';
+      html += `<div class="history-item${activeClass}" onclick="loadHistoryItem('${item.id}', '${item.mode}')">
+        <span class="hi-icon">${item.icon || '💬'}</span>
+        <span class="hi-title">${esc(item.title)}</span>
+      </div>`;
+    });
+  }
+
+  list.innerHTML = html;
+}
+
+function loadHistoryItem(id, mode) {
+  // Mark active
+  document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+  const el = document.querySelector(`.history-item[onclick*="${id}"]`);
+  if (el) el.classList.add('active');
+
+  // Switch mode if needed
+  if (mode && mode !== state.appMode) {
+    switchAppMode(mode);
+  }
+  // Future: could restore session messages from a more detailed store
+}
+
+/* ═══════════════════════════════════════════════════════
+   MEMORY RECALL INDICATOR
+═══════════════════════════════════════════════════════ */
+function showMemoryRecall(text) {
+  const badge = $('memory-recall-badge');
+  const txt   = $('memory-recall-text');
+  if (!badge) return;
+  txt.textContent = text || 'Benzer geçmiş oturum kullanıldı';
+  badge.style.display = 'flex';
+  setTimeout(() => { badge.style.display = 'none'; }, 8000);
+}
+
+function addSessionStats(data) {
+  const msgEl = $(state.currentMsgId);
+  if (!msgEl) return;
+  const body = msgEl.querySelector('.msg-body');
+  const stats = document.createElement('div');
+  stats.className = 'session-stats';
+  stats.innerHTML = `
+    <div class="stat-item"><span class="stat-val">${data.success_count}</span><span>✓</span></div>
+    <div class="stat-divider"></div>
+    <div class="stat-item"><span class="stat-val">${data.fail_count}</span><span>✗</span></div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">⏱ <span class="stat-val">${data.duration_s}s</span></div>`;
+  body.appendChild(stats);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SEND LOGIC
+═══════════════════════════════════════════════════════ */
+function handleSend() {
+  if (state.running) { stopTask(); return; }
+  if (state.clarifying) return;
+  const val = $('main-input').value.trim();
+  if (!val) return;
+  $('main-input').value = '';
+  autoResize($('main-input'));
+
+  if (state.appMode === 'property') {
+    sendPropertySearch(val);
+    return;
+  }
+
+  // Code mode
+  appendUserMsg(val);
+  saveHistoryItem('code', val);  // persist to localStorage
+  createMilaMsg();
+
+  if (state.mode === 'completed') {
+    send({ type: 'message_mila', message: val });
+  } else {
+    send({ type: 'run', goal: val, context: '' });
+  }
+}
+
+function stopTask() {
+  send({ type: 'stop' });
+}
+
+function onInputKey(e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    handleSend();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+}
+
+function updateSendBtn() {
+  const btn = $('send-btn');
+  if (state.running) {
+    btn.classList.add('stop');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="2" width="8" height="8" rx="1"/></svg>`;
+    btn.title = 'Durdur';
+  } else {
+    btn.classList.remove('stop');
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14.5 8L2 14l2.5-6H14.5zM2 2l12.5 6H4.5L2 2z"/></svg>`;
+    btn.title = 'Gönder (Ctrl+Enter)';
+  }
+}
+
+function fillInput(text) {
+  $('main-input').value = text;
+  autoResize($('main-input'));
+  $('main-input').focus();
+}
+
+function newChat() {
+  // Reset state
+  state.mode = 'idle';
+  state.running = false;
+  state.currentMsgId = null;
+  state.reviewPhase = false;
+  state.agentOutputs = {};
+  AGENTS.forEach(a => { stopAgentTimer(a.id); });
+  // Clear messages
+  const inner = $('messages-inner');
+  inner.innerHTML = `
+    <div class="welcome-screen" id="welcome-screen">
+      <div class="welcome-logo">M</div>
+      <div class="welcome-title">Merhaba, ben Mila</div>
+      <div class="welcome-sub">Çoklu-ajan kodlama sisteminizin yöneticisiyim. Bir hedef belirtin — planı yapayım, ajanları koordine edeyim.</div>
+      <div class="welcome-suggestions">
+        <button class="suggestion-btn" onclick="fillInput('Flask ile kullanıcı kayıt ve giriş sistemi olan bir REST API yaz')">Flask ile kullanıcı kayıt ve giriş sistemi olan bir REST API yaz</button>
+        <button class="suggestion-btn" onclick="fillInput('Vanilla HTML/CSS/JS ile modern bir todo uygulaması yap')">Vanilla HTML/CSS/JS ile modern bir todo uygulaması yap</button>
+        <button class="suggestion-btn" onclick="fillInput('Python ile dosya yönetim aracı yaz, CLI ile çalışsın')">Python ile dosya yönetim aracı yaz, CLI ile çalışsın</button>
+      </div>
+    </div>`;
+  refreshAgentPanel('idle');
+  updateSendBtn();
+  $('main-input').focus();
+}
+
+/* ═══════════════════════════════════════════════════════
+   MESSAGE RENDERING
+═══════════════════════════════════════════════════════ */
+function hideWelcome() {
+  const w = $('welcome-screen');
+  if (w) w.remove();
+}
+
+function appendUserMsg(text) {
+  const inner = $('messages-inner');
+  const id = 'umsg-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg msg-user';
+  div.id = id;
+  div.innerHTML = `
+    <div class="msg-avatar">U</div>
+    <div class="msg-content-wrap">${esc(text)}</div>`;
+  inner.appendChild(div);
+  scrollBottom();
+}
+
+function createMilaMsg() {
+  const id = 'mmsg-' + Date.now();
+  state.currentMsgId = id;
+  state.reviewPhase = false;
+  const inner = $('messages-inner');
+  const div = document.createElement('div');
+  div.className = 'msg msg-mila';
+  div.id = id;
+  div.innerHTML = `
+    <div class="msg-avatar">M</div>
+    <div class="msg-body">
+      <div class="thinking-block" id="think-${id}">
+        <button class="think-toggle" onclick="toggleThinkBlock(this)">
+          <div class="think-dot running" id="tdot-${id}"></div>
+          <span class="think-label" id="tlbl-${id}">Hazırlanıyor...</span>
+          <span class="think-chevron">▼</span>
+        </button>
+        <div class="think-content" id="tcontent-${id}"></div>
+      </div>
+      <div class="mila-response" id="resp-${id}"></div>
+      <div class="file-links" id="files-${id}" hidden></div>
+    </div>`;
+  inner.appendChild(div);
+  scrollBottom();
+  return id;
+}
+
+function setThinkLabel(thinkEl, status, label) {
+  const dot = thinkEl.querySelector('.think-dot');
+  const lbl = thinkEl.querySelector('.think-label');
+  if (dot) { dot.className = 'think-dot ' + status; }
+  if (lbl) lbl.textContent = label;
+}
+
+function toggleThinkBlock(btn) {
+  const block = btn.closest('.thinking-block');
+  block.classList.toggle('open');
+}
+
+function createAgentStep(task) {
+  const ag = AGENTS.find(a => a.id === task.type) || { icon:'•', name: task.type, color:'var(--text-dim)' };
+  const div = document.createElement('div');
+  div.className = 'agent-step';
+  div.dataset.agent = task.type;
+  div.dataset.taskId = task.id;
+  div.dataset.status = 'pending';
+  const modelBadge = task.model_override
+    ? `<span class="step-model-badge" style="color:var(--warn)">${task.model_override.split(':').slice(1).join(':') || task.model_override}</span>`
+    : '';
+  div.innerHTML = `
+    <div class="step-header" onclick="toggleStepOutput(this.closest('.agent-step'))">
+      <span class="step-icon">${ag.icon}</span>
+      <span class="step-name" style="color:${ag.color}">${ag.name} · ${ag.id}</span>
+      ${modelBadge}
+      <span class="step-status pending" style="color:var(--text-dim)">○</span>
+      <span class="step-time" id="stime-${task.id}"></span>
+      <span class="step-expand-btn">▼</span>
+    </div>
+    <div class="step-output" hidden id="sout-${task.id}"></div>`;
+  return div;
+}
+
+function getStep(taskId, agentType) {
+  // Find by taskId first, fallback by agentType
+  const byId = document.querySelector(`[data-task-id="${taskId}"]`);
+  if (byId) return byId;
+  return document.querySelector(`[data-agent="${agentType}"]`);
+}
+
+function setStepStatus(step, status) {
+  step.dataset.status = status;
+  const dot = step.querySelector('.step-status');
+  if (!dot) return;
+  if (status === 'running') { dot.textContent = '●'; dot.style.color = 'var(--warn)'; dot.className = 'step-status running'; }
+  else if (status === 'done') { dot.textContent = '✓'; dot.style.color = 'var(--ok)'; dot.className = 'step-status done'; }
+  else if (status === 'error') { dot.textContent = '✗'; dot.style.color = 'var(--err)'; dot.className = 'step-status error'; }
+}
+
+function toggleStepOutput(step) {
+  const out = step.querySelector('.step-output');
+  const btn = step.querySelector('.step-expand-btn');
+  if (!out) return;
+  out.hidden = !out.hidden;
+  if (btn) btn.textContent = out.hidden ? '▼' : '▲';
+}
+
+/* ═══════════════════════════════════════════════════════
+   MARKDOWN RENDERING
+═══════════════════════════════════════════════════════ */
+function renderMarkdown(text) {
+  if (!text) return '';
+  // 1. Escape HTML first (on non-code parts)
+  // We process code blocks separately
+  const parts = [];
+  const codeBlockRe = /```(\w*)\n?([\s\S]*?)```/g;
+  let last = 0, m;
+  while ((m = codeBlockRe.exec(text)) !== null) {
+    if (m.index > last) parts.push({ type:'text', val: text.slice(last, m.index) });
+    parts.push({ type:'code', lang: m[1] || 'text', val: m[2] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ type:'text', val: text.slice(last) });
+
+  return parts.map(p => {
+    if (p.type === 'code') {
+      const escaped = escHtml(p.val);
+      let highlighted = escaped;
+      if (p.lang && p.lang !== 'text' && typeof hljs !== 'undefined') {
+        try {
+          highlighted = hljs.highlight(p.val, { language: p.lang, ignoreIllegals: true }).value;
+        } catch(e) { highlighted = escaped; }
+      }
+      const id = 'cb-' + Math.random().toString(36).slice(2,7);
+      return `<pre><div class="code-header"><span class="code-lang">${escHtml(p.lang)}</span><button class="code-copy" onclick="copyCode('${id}')">Kopyala</button></div><code id="${id}">${highlighted}</code></pre>`;
+    } else {
+      return inlineMarkdown(escHtml(p.val));
+    }
+  }).join('');
+}
+
+function inlineMarkdown(html) {
+  return html
+    .replace(/^#{3}\s+(.+)$/gm, '<h3>$1</h3>')
+    .replace(/^#{2}\s+(.+)$/gm, '<h2>$1</h2>')
+    .replace(/^#{1}\s+(.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^(\d+)\.\s+(.+)$/gm, '<li data-n="$1">$2</li>')
+    .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(<li[^>]*>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)$/, '<p>$1</p>');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function esc(s) { return escHtml(s); }
+
+function copyCode(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent).catch(()=>{});
+}
+
+function scrollBottom() {
+  const area = $('messages-area');
+  area.scrollTop = area.scrollHeight;
+}
+
+/* ═══════════════════════════════════════════════════════
+   AGENT PANEL
+═══════════════════════════════════════════════════════ */
+function togglePanel() {
+  const panel = $('agent-panel');
+  const btn = $('btn-panel');
+  panel.classList.toggle('collapsed');
+  if (btn) btn.classList.toggle('active', !panel.classList.contains('collapsed'));
+  // Switch to files tab when in property mode
+  if (!panel.classList.contains('collapsed') && state.appMode === 'property') {
+    switchPanelTab('files');
+  }
+}
+
+function refreshAgentPanel(defaultStatus) {
+  const scroll = $('panel-scroll');
+  if (!scroll) return;
+  scroll.innerHTML = '';
+  AGENTS.forEach(ag => {
+    const card = document.createElement('div');
+    card.className = 'agent-card';
+    card.id = 'ac-' + ag.id;
+    card.innerHTML = `
+      <div class="agent-card-header">
+        <span class="ac-icon">${ag.icon}</span>
+        <span class="ac-name" style="color:${ag.color}">${ag.name}</span>
+        <span class="ac-model" id="ac-model-${ag.id}">—</span>
+        <span class="ac-status-dot" id="ac-dot-${ag.id}"></span>
+        <span class="ac-time" id="ac-time-${ag.id}"></span>
+      </div>
+      <div class="ac-preview" id="ac-preview-${ag.id}">Henüz çalışmadı</div>
+      <button class="ac-view-btn" onclick="openAgentOutput('${ag.id}')">Tam Çıktı</button>`;
+    scroll.appendChild(card);
+  });
+  // Populate model labels from settings
+  loadAgentModels();
+}
+
+function updateAgentCard(agentId, status) {
+  const dot = $('ac-dot-' + agentId);
+  if (dot) dot.className = 'ac-status-dot ' + status;
+}
+
+function loadAgentModels() {
+  fetch('/settings/agents').then(r=>r.json()).then(cfg => {
+    AGENTS.forEach(ag => {
+      const el = $('ac-model-' + ag.id);
+      if (el && cfg[ag.id]) {
+        const mdl = (cfg[ag.id].model || '').split(':').pop();
+        el.textContent = mdl;
+      }
+    });
+  }).catch(()=>{});
+}
+
+function openAgentOutput(agentId) {
+  const ag = AGENTS.find(a => a.id === agentId);
+  const out = state.agentOutputs[agentId] || '(Henüz çıktı yok)';
+  openModal(`
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <span>${ag ? ag.icon + ' ' + ag.name : agentId} · Tam Çıktı</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <div class="agent-out-pre">${esc(out)}</div>
+      </div>
+    </div>`);
+}
+
+/* ═══════════════════════════════════════════════════════
+   AGENT TIMERS
+═══════════════════════════════════════════════════════ */
+function startAgentTimer(agentId) {
+  state.agentStartMs[agentId] = Date.now();
+  stopAgentTimer(agentId); // clear any existing
+  state.agentTimers[agentId] = setInterval(() => {
+    const el = $('ac-time-' + agentId);
+    if (el && state.agentStartMs[agentId]) {
+      el.textContent = ((Date.now() - state.agentStartMs[agentId])/1000).toFixed(1) + 's';
+    }
+    // Also update step time
+    const taskId = getTaskIdForAgent(agentId);
+    if (taskId) {
+      const tel = $('stime-' + taskId);
+      if (tel) tel.textContent = ((Date.now() - state.agentStartMs[agentId])/1000).toFixed(1) + 's';
+    }
+  }, 250);
+}
+
+function stopAgentTimer(agentId) {
+  if (state.agentTimers[agentId]) {
+    clearInterval(state.agentTimers[agentId]);
+    delete state.agentTimers[agentId];
+  }
+}
+
+function getTaskIdForAgent(agentId) {
+  const task = state.planTasks.find(t => t.type === agentId);
+  return task ? task.id : null;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SUPERVISOR MODEL MODAL
+═══════════════════════════════════════════════════════ */
+let supModalState = { tab: 'local', items: { cloud:[], local:[] }, selected: null };
+
+function updateSupBadge(model, online) {
+  const text = $('sup-model-text');
+  if (text) text.textContent = model || '?';
+  const dot = $('net-dot');
+  if (dot) dot.className = 'sup-dot' + (online ? '' : ' offline');
+}
+
+function openSupModal() {
+  openModal(`
+    <div class="modal sup-selector-modal">
+      <div class="modal-header">
+        <span>🧠 Supervisor Model</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="model-tabs" id="sup-tabs">
+          <button class="model-tab" id="stab-cloud" onclick="setSupTab('cloud')">☁ Cloud</button>
+          <button class="model-tab active" id="stab-local" onclick="setSupTab('local')">💻 Yerel</button>
+        </div>
+        <div class="model-list" id="sup-model-list"><div style="color:var(--text-dim);font-size:12px;padding:8px">Yükleniyor...</div></div>
+        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="closeModal()" style="padding:7px 16px;border-radius:var(--rs);border:1px solid var(--border);color:var(--text-mid);font-size:13px">İptal</button>
+          <button class="apply-btn" onclick="applySupModel()">Uygula</button>
+        </div>
+      </div>
+    </div>`);
+  loadSupModels();
+}
+
+function loadSupModels() {
+  fetch('/supervisor/models').then(r=>r.json()).then(data => {
+    supModalState.items.cloud = data.cloud || [];
+    supModalState.items.local = data.local || [];
+    if (data.current) supModalState.selected = data.current;
+    supModalState.tab = (data.current?.provider === 'ollama') ? 'local' : 'cloud';
+    setSupTab(supModalState.tab);
+  }).catch(()=>{});
+}
+
+function setSupTab(tab) {
+  supModalState.tab = tab;
+  ['cloud','local'].forEach(t => {
+    const el = $('stab-' + t);
+    if (el) el.className = 'model-tab' + (t === tab ? ' active' : '');
+  });
+  renderSupList();
+}
+
+function renderSupList() {
+  const list = $('sup-model-list');
+  if (!list) return;
+  const items = supModalState.items[supModalState.tab] || [];
+  if (!items.length) {
+    list.innerHTML = `<div style="color:var(--text-dim);font-size:12px;padding:8px">${supModalState.tab === 'cloud' ? 'API anahtarı bulunamadı' : 'Yerel model bulunamadı'}</div>`;
+    return;
+  }
+  list.innerHTML = items.map(m => {
+    const sel = supModalState.selected && m.model === supModalState.selected.model;
+    return `<div class="model-item${sel?' selected':''}" onclick="selectSupModel('${m.provider}','${m.model}',this)">
+      <span class="mi-icon">${m.icon || '💻'}</span>
+      <span class="mi-label">${esc(m.label || m.model)}</span>
+      ${sel ? '<span class="mi-check">✓</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function selectSupModel(provider, model, el) {
+  supModalState.selected = { provider, model };
+  $('sup-model-list').querySelectorAll('.model-item').forEach(i => {
+    i.classList.toggle('selected', i === el);
+    const chk = i.querySelector('.mi-check');
+    if (chk) chk.remove();
+  });
+  if (!el.querySelector('.mi-check')) {
+    el.insertAdjacentHTML('beforeend', '<span class="mi-check">✓</span>');
+  }
+}
+
+function applySupModel() {
+  if (!supModalState.selected) return;
+  const { provider, model } = supModalState.selected;
+  send({ type: 'set_supervisor', provider, model });
+  updateSupBadge(model, provider !== 'ollama');
+  closeModal();
+}
+
+/* ═══════════════════════════════════════════════════════
+   SETTINGS MODAL
+═══════════════════════════════════════════════════════ */
+function openSettings() {
+  openModal(`
+    <div class="modal modal-md">
+      <div class="modal-header">
+        <span>⚙ Ayarlar</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <div class="settings-section-title">Ajanlar</div>
+          <div id="agent-settings-rows"><div style="color:var(--text-dim);font-size:12px">Yükleniyor...</div></div>
+        </div>
+      </div>
+    </div>`);
+  loadAgentSettings();
+}
+
+let _agentModels = [];
+function loadAgentSettings() {
+  Promise.all([
+    fetch('/settings/agents').then(r=>r.json()),
+    fetch('/supervisor/models').then(r=>r.json()),
+  ]).then(([cfg, modData]) => {
+    _agentModels = (modData.local || []).map(m => m.model);
+    const container = $('agent-settings-rows');
+    if (!container) return;
+    container.innerHTML = AGENTS.map(ag => {
+      const c = cfg[ag.id] || { provider:'ollama', model:'', temperature:0.1 };
+      const opts = _agentModels.map(m =>
+        `<option value="${esc(m)}" ${m === c.model ? 'selected' : ''}>${esc(m)}</option>`
+      ).join('');
+      const temp = parseFloat(c.temperature || 0.1);
+      return `
+        <div class="setting-row">
+          <div class="setting-label"><span class="setting-agent-icon">${ag.icon}</span>${ag.name}</div>
+          <div class="setting-control">
+            <select class="setting-select" id="agt-model-${ag.id}">${opts}</select>
+            <div class="setting-temp-row" style="margin-top:6px">
+              <span style="font-size:11px;color:var(--text-dim);width:50px">Temp:</span>
+              <input type="range" min="0" max="1.5" step="0.05" value="${temp}" id="agt-temp-${ag.id}"
+                oninput="$('agt-tempval-${ag.id}').textContent=parseFloat(this.value).toFixed(2)">
+              <span class="setting-temp-val" id="agt-tempval-${ag.id}">${temp.toFixed(2)}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <button class="apply-btn" onclick="applyAgentConfig('${ag.id}')">Kaydet</button>
+            <span class="saved-badge" id="agt-saved-${ag.id}">✓</span>
+          </div>
+        </div>`;
+    }).join('');
+  }).catch(()=>{});
+}
+
+function applyAgentConfig(agentId) {
+  const model = $('agt-model-' + agentId)?.value || '';
+  const temp  = parseFloat($('agt-temp-' + agentId)?.value || '0.1');
+  send({ type: 'set_agent_config', agent: agentId, provider: 'ollama', model, temperature: temp });
+  const badge = $('agt-saved-' + agentId);
+  if (badge) {
+    badge.classList.add('visible');
+    setTimeout(() => badge.classList.remove('visible'), 2000);
+  }
+  // Update panel card
+  const cardModel = $('ac-model-' + agentId);
+  if (cardModel) cardModel.textContent = model.split(':').pop();
+}
+
+/* ═══════════════════════════════════════════════════════
+   WORKSPACE FILES
+═══════════════════════════════════════════════════════ */
+function loadWorkspaceFiles() {
+  fetch('/workspace/files').then(r=>r.json()).then(data => {
+    renderFileTree(data.files || []);
+  }).catch(()=>{});
+}
+
+function renderFileTree(files) {
+  const tree = $('file-tree');
+  if (!tree) return;
+  if (!files.length) {
+    tree.innerHTML = '<div class="file-empty">Henüz dosya yok</div>';
+    return;
+  }
+  // Group by folder
+  const grouped = {};
+  files.forEach(f => {
+    const parts = f.replace(/\\/g, '/').split('/');
+    const folder = parts.length > 1 ? parts[0] : '';
+    if (!grouped[folder]) grouped[folder] = [];
+    grouped[folder].push(f);
+  });
+  tree.innerHTML = Object.entries(grouped).map(([folder, flist]) => {
+    const folderHtml = folder ? `<div class="file-node folder"><span class="file-icon">📁</span>${esc(folder)}/</div>` : '';
+    const fileHtml = flist.map(f => {
+      const name = f.replace(/\\/g,'/').split('/').pop();
+      const icon = getFileIcon(name);
+      return `<div class="file-node" onclick="openFile('${esc(f)}')" style="${folder?'padding-left:22px':''}">
+        <span class="file-icon">${icon}</span>${esc(name)}</div>`;
+    }).join('');
+    return folderHtml + fileHtml;
+  }).join('');
+}
+
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const icons = { html:'🌐', css:'🎨', js:'🟨', ts:'🔷', py:'🐍', json:'📋', md:'📝', sh:'⚡', yaml:'⚙', yml:'⚙', txt:'📄' };
+  return icons[ext] || '📄';
+}
+
+function openFile(path) {
+  fetch(`/workspace/read?path=${encodeURIComponent(path)}`).then(r=>r.json()).then(data => {
+    const content = data.content || '';
+    const ext = path.split('.').pop().toLowerCase();
+    let highlighted = escHtml(content);
+    if (typeof hljs !== 'undefined') {
+      const langMap = { js:'javascript', ts:'typescript', py:'python', html:'html', css:'css', json:'json', sh:'bash', yaml:'yaml', yml:'yaml', md:'markdown' };
+      const lang = langMap[ext];
+      if (lang) {
+        try { highlighted = hljs.highlight(content, { language: lang, ignoreIllegals: true }).value; } catch(e){}
+      }
+    }
+    const fname = path.replace(/\\/g,'/').split('/').pop();
+    openModal(`
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <span>${getFileIcon(fname)} ${esc(fname)}</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button onclick="copyFileContent()" style="padding:4px 10px;border-radius:var(--rs);border:1px solid var(--border);color:var(--text-mid);font-size:12px">Kopyala</button>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding:0">
+          <pre class="file-viewer-pre" id="file-content"><code>${highlighted}</code></pre>
+        </div>
+      </div>`);
+  }).catch(err => {
+    openModal(`<div class="modal modal-sm"><div class="modal-header"><span>Hata</span><button class="modal-close" onclick="closeModal()">✕</button></div><div class="modal-body" style="color:var(--err)">${esc(String(err))}</div></div>`);
+  });
+}
+
+function copyFileContent() {
+  const el = $('file-content');
+  if (el) navigator.clipboard.writeText(el.textContent).catch(()=>{});
+}
+
+/* ═══════════════════════════════════════════════════════
+   SESSION HISTORY
+═══════════════════════════════════════════════════════ */
+function saveHistory(goal, data) {
+  // Also save with new v2 format
+  saveHistoryItem(state.appMode, goal);
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODAL SYSTEM
+═══════════════════════════════════════════════════════ */
+function openModal(html) {
+  closeModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modal-overlay';
+  overlay.innerHTML = html;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.body.appendChild(overlay);
+}
+
+function closeModal() {
+  const m = $('modal-overlay');
+  if (m) m.remove();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR TOGGLE
+═══════════════════════════════════════════════════════ */
+function toggleSidebar() {
+  $('sidebar').classList.toggle('collapsed');
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+connect();
+refreshAgentPanel('idle');
+renderHistory();          // date-grouped conversation history
+// Don't load file tree on startup — only when panel is opened
+</script>
+</body>
+</html>

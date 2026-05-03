@@ -1,0 +1,85 @@
+{
+  "Dockerfile": "docker_setup",
+  "docker-compose.yml": "docker_orchestration",
+  "docker-compose.yaml": "docker_orchestration",
+
+  "package.json": "node_project_root",
+  "package-lock.json": "node_lockfile",
+  "pnpm-lock.yaml": "node_lockfile",
+  "yarn.lock": "node_lockfile",
+
+  "pyproject.toml": "python_project_root",
+  "requirements.txt": "python_dependencies",
+  "requirements-dev.txt": "python_dependencies",
+  "Pipfile": "python_project_root",
+  "Pipfile.lock": "python_lockfile",
+  "setup.py": "python_package",
+  "setup.cfg": "python_package",
+
+  "go.mod": "go_project_root",
+  "go.sum": "go_dependencies",
+
+  "Cargo.toml": "rust_project_root",
+  "Cargo.lock": "rust_lockfile",
+
+  "pom.xml": "java_maven_project",
+  "build.gradle": "java_gradle_project",
+  "build.gradle.kts": "java_gradle_project",
+  "settings.gradle": "java_gradle_project",
+
+  "*.csproj": "dotnet_project",
+  "*.sln": "dotnet_solution",
+  "global.json": "dotnet_sdk_config",
+  "nuget.config": "dotnet_package_config",
+
+  "composer.json": "php_project_root",
+  "composer.lock": "php_lockfile",
+
+  "Gemfile": "ruby_project_root",
+  "Gemfile.lock": "ruby_lockfile",
+
+  "Makefile": "build_system",
+  "CMakeLists.txt": "cmake_project",
+
+  ".gitignore": "vcs_config",
+  ".gitattributes": "vcs_config",
+  ".gitmodules": "vcs_config",
+
+  ".env": "environment_config",
+  ".env.example": "environment_template",
+  ".env.local": "environment_config",
+  ".env.production": "environment_config",
+  ".env.development": "environment_config",
+
+  "main.py": "entrypoint",
+  "app.py": "entrypoint",
+  "manage.py": "django_entrypoint",
+
+  "index.js": "entrypoint",
+  "index.ts": "entrypoint",
+  "server.js": "entrypoint",
+  "server.ts": "entrypoint",
+  "app.js": "entrypoint",
+  "app.ts": "entrypoint",
+
+  "main.go": "entrypoint",
+
+  "vite.config.js": "frontend_build_config",
+  "vite.config.ts": "frontend_build_config",
+  "webpack.config.js": "frontend_build_config",
+  "rollup.config.js": "frontend_build_config",
+  "next.config.js": "nextjs_config",
+  "nuxt.config.js": "nuxt_config",
+
+  "tsconfig.json": "typescript_config",
+  "eslint.config.js": "lint_config",
+  ".eslintrc": "lint_config",
+  ".prettierrc": "format_config",
+
+  ".github/workflows": "github_ci",
+  ".gitlab-ci.yml": "gitlab_ci",
+  "Jenkinsfile": "jenkins_ci",
+
+  "README.md": "documentation",
+  "LICENSE": "license_file"
+}

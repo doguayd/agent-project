@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Agent System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── CSS Variables ───────────────────────────────────────────── */
+:root {
+  --bg:          #07070f;
+  --bg-card:     #0c0c1a;
+  --bg-input:    #101022;
+  --bg-term:     #040408;
+  --border:      #1a1a32;
+  --border-dim:  #12122a;
+  --text:        #c8d3f5;
+  --text-dim:    #3d4166;
+  --text-mid:    #6b7db3;
+  --code:        #9ccfd8;
+
+  --supervisor:  #3b82f6;
+  --researcher:  #a78bfa;
+  --coder:       #34d399;
+  --reviewer:    #fbbf24;
+  --tester:      #22d3ee;
+  --debugger:    #f87171;
+  --system:      #64748b;
+
+  --success:     #10b981;
+  --error:       #ef4444;
+  --warning:     #f59e0b;
+
+  --radius:      10px;
+  --font-mono:   'JetBrains Mono', 'Fira Code', monospace;
+  --font-ui:     'Inter', system-ui, sans-serif;
+}
+
+/* ─── Reset & Base ────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-ui);
+  background:  var(--bg);
+  color:       var(--text);
+  display:     grid;
+  grid-template-rows: 52px 1fr 210px;
+  grid-template-areas: "hdr" "main" "term";
+  height:      100vh;
+  overflow:    hidden;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ─── Header ─────────────────────────────────────────────────── */
+header {
+  grid-area: hdr;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(7,7,15,0.95);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.logo {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo-icon { font-size: 18px; }
+
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.supervisor-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--supervisor);
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--supervisor);
+  background: rgba(59,130,246,0.06);
+}
+.supervisor-chip .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--supervisor);
+  animation: blink 2s infinite;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border: 1px solid;
+}
+.badge.online  { color: var(--success); border-color: var(--success); background: rgba(16,185,129,0.07); }
+.badge.offline { color: var(--warning); border-color: var(--warning); background: rgba(245,158,11,0.07); }
+.badge.conn    { color: var(--text-mid); border-color: var(--border); }
+.badge.connected { color: var(--success); border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.05); }
+.badge.disconnected { color: var(--error); border-color: rgba(239,68,68,0.4); }
+
+/* ─── Main Layout ────────────────────────────────────────────── */
+#main {
+  grid-area: main;
+  display: grid;
+  grid-template-columns: 272px 1fr;
+  overflow: hidden;
+}
+
+/* ─── Sidebar ────────────────────────────────────────────────── */
+#sidebar {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 10px 12px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+}
+textarea:focus { border-color: rgba(59,130,246,0.5); }
+#task-input { min-height: 90px; }
+#ctx-input  { min-height: 50px; font-size: 11px; color: var(--text-mid); }
+
+.btn {
+  width: 100%;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-run {
+  background: var(--supervisor);
+  color: #fff;
+}
+.btn-run:hover:not(:disabled) { background: #2563eb; transform: translateY(-1px); }
+.btn-run:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-run.running {
+  background: linear-gradient(90deg, #1d4ed8, #3b82f6, #1d4ed8);
+  background-size: 200%;
+  animation: shimmer 1.5s infinite;
+}
+.btn-stop {
+  background: rgba(239,68,68,0.1);
+  color: var(--error);
+  border: 1px solid rgba(239,68,68,0.3);
+  display: none;
+  margin-top: 6px;
+}
+.btn-stop.visible { display: flex; }
+.btn-stop:hover { background: rgba(239,68,68,0.2); }
+
+/* Plan Vizualizasyonu */
+#plan-section { display: none; }
+.plan-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.plan-group-id {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  padding-top: 3px;
+  min-width: 36px;
+}
+.plan-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.plan-chip {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  border: 1px solid;
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-arrow {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 10px;
+  margin: 1px 0 1px 36px;
+}
+
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.stat-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.stat-label { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-value { font-family: var(--font-mono); font-size: 14px; font-weight: 600; margin-top: 2px; }
+.stat-value.green { color: var(--success); }
+.stat-value.red   { color: var(--error); }
+.stat-value.blue  { color: var(--supervisor); }
+
+/* History */
+.history-item {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+.history-item:hover { background: var(--bg-card); border-color: var(--border); color: var(--text); }
+
+/* ─── Workspace Panel ───────────────────────────────────────── */
+.ws-panel {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  min-height: 48px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.ws-empty {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 10px 0;
+}
+.ws-file-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-mid);
+}
+.ws-file-item:hover { background: var(--bg-card); color: var(--text); }
+.ws-file-icon { font-size: 11px; }
+.ws-file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-upload-btn {
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: background 0.12s;
+  color: var(--text-mid);
+}
+.ws-upload-btn:hover { background: var(--bg-card); color: var(--text); }
+.ws-project-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--coder);
+  padding: 2px 6px;
+  border: 1px solid rgba(52,211,153,0.25);
+  border-radius: 4px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Supervisor Seçici ──────────────────────────────────────── */
+.sup-selector {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sup-tabs {
+  display: flex;
+  gap: 4px;
+}
+.sup-tab {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-mid);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.sup-tab:hover { border-color: var(--text-mid); color: var(--text); }
+.sup-tab.active {
+  border-color: var(--supervisor);
+  color: var(--supervisor);
+  background: rgba(59,130,246,0.1);
+}
+.sup-tab.active.local {
+  border-color: var(--coder);
+  color: var(--coder);
+  background: rgba(52,211,153,0.08);
+}
+.sup-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.sup-model-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sup-model-item:hover { background: rgba(255,255,255,0.04); border-color: var(--border); }
+.sup-model-item.selected {
+  background: rgba(59,130,246,0.1);
+  border-color: rgba(59,130,246,0.35);
+}
+.sup-model-item.selected.local {
+  background: rgba(52,211,153,0.08);
+  border-color: rgba(52,211,153,0.3);
+}
+.sup-model-icon { font-size: 13px; flex-shrink: 0; }
+.sup-model-info { flex: 1; min-width: 0; }
+.sup-model-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sup-model-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+.sup-apply-btn {
+  width: 100%;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--supervisor);
+  background: rgba(59,130,246,0.1);
+  color: var(--supervisor);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: none;
+}
+.sup-apply-btn:hover { background: rgba(59,130,246,0.2); }
+.sup-apply-btn.visible { display: block; }
+.sup-apply-btn.local-mode {
+  border-color: var(--coder);
+  background: rgba(52,211,153,0.08);
+  color: var(--coder);
+}
+.sup-apply-btn.local-mode:hover { background: rgba(52,211,153,0.15); }
+.sup-loading {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 8px;
+  display: none;
+}
+.sup-loading.visible { display: block; }
+
+/* ─── Pipeline ────────────────────────────────────────────────── */
+#pipeline {
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ─── Agent Cards ─────────────────────────────────────────────── */
+.agent-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Üst renk şeridi */
+.agent-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--agent-color, var(--border));
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+/* Aktif glow */
+.agent-card[data-status="running"] {
+  border-color: var(--agent-color, var(--border));
+  box-shadow: 0 0 0 1px var(--agent-color-a, transparent),
+              0 0 16px var(--agent-glow, transparent);
+}
+.agent-card[data-status="running"]::before { opacity: 1; }
+.agent-card[data-status="done"]     { border-color: rgba(16,185,129,0.25); }
+.agent-card[data-status="error"]    { border-color: rgba(239,68,68,0.35); }
+.agent-card[data-status="queued"]   { border-color: rgba(107,125,179,0.25); }
+
+/* Supervisor büyük kart */
+.supervisor-card { --agent-color: var(--supervisor); --agent-glow: rgba(59,130,246,0.15); }
+.supervisor-card[data-status="running"] {
+  animation: supervisor-glow 2.5s ease-in-out infinite;
+}
+
+/* Ajan renkleri */
+.agent-card[data-agent="researcher"] { --agent-color: var(--researcher); --agent-glow: rgba(167,139,250,0.12); }
+.agent-card[data-agent="coder"]      { --agent-color: var(--coder);      --agent-glow: rgba(52,211,153,0.12); }
+.agent-card[data-agent="reviewer"]   { --agent-color: var(--reviewer);   --agent-glow: rgba(251,191,36,0.12); }
+.agent-card[data-agent="tester"]     { --agent-color: var(--tester);     --agent-glow: rgba(34,211,238,0.12); }
+.agent-card[data-agent="debugger"]   { --agent-color: var(--debugger);   --agent-glow: rgba(248,113,113,0.12); }
+
+/* Card Header */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.agent-avatar {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  background: var(--agent-color-bg, rgba(255,255,255,0.04));
+  border: 1px solid var(--agent-color, var(--border));
+}
+.supervisor-card .agent-avatar { background: rgba(59,130,246,0.1); }
+[data-agent="researcher"] .agent-avatar { background: rgba(167,139,250,0.1); }
+[data-agent="coder"]      .agent-avatar { background: rgba(52,211,153,0.1); }
+[data-agent="reviewer"]   .agent-avatar { background: rgba(251,191,36,0.1); }
+[data-agent="tester"]     .agent-avatar { background: rgba(34,211,238,0.1); }
+[data-agent="debugger"]   .agent-avatar { background: rgba(248,113,113,0.1); }
+
+.agent-meta { flex: 1; min-width: 0; }
+.agent-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.agent-role {
+  font-size: 10px;
+  color: var(--text-mid);
+  font-family: var(--font-mono);
+  margin-top: 1px;
+}
+
+.status-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+[data-status="running"]  .status-badge { color: #fff; background: var(--agent-color); border-color: var(--agent-color); }
+[data-status="done"]     .status-badge { color: var(--success); border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); }
+[data-status="error"]    .status-badge { color: var(--error);   border-color: rgba(239,68,68,0.4);  background: rgba(239,68,68,0.08); }
+[data-status="queued"]   .status-badge { color: var(--text-mid); border-color: rgba(107,125,179,0.3); }
+
+.elapsed-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-left: 6px;
+}
+[data-status="running"] .elapsed-badge { color: var(--agent-color); }
+
+/* Card Body */
+.card-body { margin-top: 10px; }
+
+.persona-quote {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  border-left: 2px solid var(--border);
+  padding-left: 8px;
+}
+[data-status="running"] .persona-quote,
+[data-status="done"]    .persona-quote { display: none; }
+
+.task-desc {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-mid);
+  margin-bottom: 6px;
+  display: none;
+  line-height: 1.4;
+}
+[data-status="running"] .task-desc,
+[data-status="done"]    .task-desc { display: block; }
+
+.output-stream {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--code);
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  padding: 10px 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  display: none;
+  transition: max-height 0.3s ease;
+}
+.output-stream.expanded { max-height: 700px; }
+[data-status="running"] .output-stream,
+[data-status="done"]    .output-stream { display: block; }
+
+/* Rendered markdown output */
+.output-rendered {
+  display: none;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text);
+}
+[data-status="done"] .output-rendered { display: block; }
+[data-status="done"] .output-stream.raw-hidden { display: none; }
+
+.output-rendered h2 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 12px 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.output-rendered h3 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-mid);
+  margin: 10px 0 3px;
+}
+.output-rendered p {
+  color: var(--text-mid);
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.output-rendered strong { color: var(--text); }
+.output-rendered code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(0,0,0,0.4);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--code);
+}
+.output-rendered ul, .output-rendered ol {
+  padding-left: 18px;
+  margin-bottom: 6px;
+  color: var(--text-mid);
+  font-size: 12px;
+}
+.output-rendered li { margin-bottom: 2px; }
+
+/* Code block */
+.code-block {
+  position: relative;
+  background: var(--bg-term);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border-dim);
+}
+.code-lang {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.code-copy-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.code-copy-btn:hover { border-color: var(--text-mid); color: var(--text); }
+.code-block pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--code);
+  white-space: pre;
+}
+
+/* Card action buttons */
+.card-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.card-action-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: none;
+}
+[data-status="done"] .card-action-btn { display: inline-block; }
+.card-action-btn:hover { border-color: var(--text-mid); color: var(--text); background: rgba(255,255,255,0.04); }
+.card-action-btn.expand-btn { color: var(--text-mid); }
+
+/* Verdict badge */
+.verdict-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: none;
+}
+.verdict-badge.approved  { color: var(--success); background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.35); }
+.verdict-badge.changes   { color: var(--warning); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.35); }
+.verdict-badge.rejected  { color: var(--error);   background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.35); }
+[data-status="done"] .verdict-badge { display: inline-block; }
+
+/* Revision indicator */
+.revision-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 6px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--warning);
+}
+.revision-bar.visible { display: flex; }
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+.model-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 1px 6px;
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+}
+
+/* Agent Grid */
+#agent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* ─── Terminal ───────────────────────────────────────────────── */
+#terminal {
+  grid-area: term;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-term);
+}
+.term-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border-dim);
+  flex-shrink: 0;
+}
+.term-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.term-title .dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: blink 1.5s infinite;
+}
+.term-actions { display: flex; gap: 6px; }
+.term-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.term-btn:hover { border-color: var(--text-mid); color: var(--text); }
+
+#term-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.log-line {
+  display: flex;
+  gap: 8px;
+  animation: slide-in 0.15s ease;
+  padding: 1px 0;
+}
+.log-ts   { color: var(--text-dim); flex-shrink: 0; }
+.log-agent {
+  flex-shrink: 0;
+  width: 80px;
+  font-weight: 600;
+}
+.log-msg { color: var(--text-mid); word-break: break-word; }
+.log-msg.stream { color: var(--code); opacity: 0.8; }
+.log-msg.success { color: var(--success); }
+.log-msg.error   { color: var(--error); }
+.log-msg.info    { color: var(--text); }
+
+.log-agent.supervisor  { color: var(--supervisor); }
+.log-agent.researcher  { color: var(--researcher); }
+.log-agent.coder       { color: var(--coder); }
+.log-agent.reviewer    { color: var(--reviewer); }
+.log-agent.tester      { color: var(--tester); }
+.log-agent.debugger    { color: var(--debugger); }
+.log-agent.system      { color: var(--system); }
+
+/* ─── Animations ─────────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+@keyframes shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes supervisor-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(59,130,246,0.15); }
+  50%       { box-shadow: 0 0 28px rgba(59,130,246,0.3); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ─── Mila Direct Line ───────────────────────────────────────── */
+.mila-direct {
+  background: var(--bg-input);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mila-direct-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--supervisor);
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mila-direct-label .pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--supervisor);
+  animation: blink 2s infinite;
+  flex-shrink: 0;
+}
+.mila-direct textarea {
+  min-height: 52px;
+  font-size: 11.5px;
+  border-color: rgba(59,130,246,0.2);
+  resize: none;
+}
+.mila-direct textarea:focus {
+  border-color: rgba(59,130,246,0.55);
+}
+.mila-send-btn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--supervisor);
+  background: rgba(59,130,246,0.1);
+  color: var(--supervisor);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.mila-send-btn:hover:not(:disabled) {
+  background: rgba(59,130,246,0.2);
+  transform: translateY(-1px);
+}
+.mila-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.mila-history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.mila-msg {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.mila-msg.user {
+  background: rgba(59,130,246,0.08);
+  border: 1px solid rgba(59,130,246,0.2);
+  color: var(--supervisor);
+  text-align: right;
+}
+.mila-msg.system {
+  color: var(--text-dim);
+  text-align: left;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #agent-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header>
+  <div class="logo">
+    <span class="logo-icon">⚡</span>
+    Agent System
+  </div>
+
+  <div class="header-center">
+    <div class="supervisor-chip" id="sup-chip">
+      <div class="dot"></div>
+      <span id="sup-label">Supervisor: Bağlanıyor...</span>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <span class="badge" id="net-badge">🌐 —</span>
+    <span class="badge conn" id="ws-badge">● Bağlanıyor</span>
+  </div>
+</header>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<div id="main">
+
+  <!-- ── Sidebar ── -->
+  <aside id="sidebar">
+
+    <div>
+      <div class="section-label">Yeni Görev</div>
+      <textarea id="task-input" placeholder="Ne yapmamı istersin?&#10;&#10;Örnek: Flask REST API yaz, JWT auth ile kullanıcı yönetimi ekle"></textarea>
+      <textarea id="ctx-input" style="margin-top:6px" placeholder="Ek bağlam (isteğe bağlı)..."></textarea>
+      <button class="btn btn-run" id="run-btn" onclick="sendRun()" style="margin-top:8px">
+        <span id="run-icon">▶</span>
+        <span id="run-text">Çalıştır</span>
+      </button>
+      <button class="btn btn-stop" id="stop-btn" onclick="sendStop()">
+        ◼ Durdur
+      </button>
+    </div>
+
+    <div id="plan-section">
+      <div class="section-label">Yürütme Planı</div>
+      <div id="plan-viz"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Oturum</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">Süre</div>
+          <div class="stat-value blue" id="s-elapsed">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Başarı</div>
+          <div class="stat-value green" id="s-success">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Hata</div>
+          <div class="stat-value red" id="s-fail">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Geçmiş</div>
+          <div class="stat-value" id="s-memory">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supervisor Seçici -->
+    <div>
+      <div class="section-label">Supervisor Modeli</div>
+      <div class="sup-selector">
+        <div class="sup-tabs">
+          <button class="sup-tab active" id="tab-cloud" onclick="switchSupTab('cloud')">🌐 Bulut</button>
+          <button class="sup-tab local"  id="tab-local" onclick="switchSupTab('local')">💻 Yerel</button>
+        </div>
+        <div class="sup-loading" id="sup-loading">Yükleniyor...</div>
+        <div class="sup-model-list" id="sup-model-list"></div>
+        <button class="sup-apply-btn" id="sup-apply-btn" onclick="applySupvisor()">
+          Supervisor'ı Değiştir
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Son Görevler</div>
+      <div id="history-list"></div>
+    </div>
+
+    <!-- Mila Direct Line -->
+    <div>
+      <div class="section-label">Mila'ya Yaz</div>
+      <div class="mila-direct">
+        <div class="mila-direct-label">
+          <div class="pulse"></div>
+          Doğrudan Supervisor İletişimi
+        </div>
+        <div class="mila-history" id="mila-history"></div>
+        <textarea id="mila-input" placeholder="Mila'ya talimat ver: 'Navbar'ı sabit yap', 'Mobil uyumlu hale getir', 'Hata var, Neo'yu çağır'..."></textarea>
+        <button class="mila-send-btn" id="mila-send-btn" onclick="sendMilaMessage()">
+          🧠 Mila'ya Gönder
+        </button>
+      </div>
+    </div>
+
+    <!-- Workspace Panel -->
+    <div>
+      <div class="section-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Workspace</span>
+        <label class="ws-upload-btn" title="Dosya yükle">
+          📎
+          <input type="file" id="ws-file-input" multiple onchange="uploadFiles(this)" style="display:none">
+        </label>
+      </div>
+      <div class="ws-panel" id="ws-panel">
+        <div class="ws-empty" id="ws-empty">Henüz dosya yok</div>
+        <div id="ws-file-list"></div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Pipeline ── -->
+  <section id="pipeline">
+
+    <!-- Supervisor Kart (tam genişlik) -->
+    <div class="agent-card supervisor-card" id="card-supervisor" data-agent="supervisor" data-status="idle">
+      <div class="card-header">
+        <div class="agent-avatar">🧠</div>
+        <div class="agent-meta">
+          <div class="agent-name">Mila</div>
+          <div class="agent-role" id="sup-model-label">Supervisor · Gemini 2.0 Flash</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="elapsed-badge" id="elapsed-supervisor"></span>
+          <span class="status-badge" id="status-supervisor">Bekliyor</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="persona-quote">"Karmaşıklığı parçalara ayır. Her parçayı doğru uzmana ver. Sonucu değerlendir."</div>
+        <div class="task-desc"  id="task-supervisor"></div>
+        <pre class="output-stream" id="output-supervisor"></pre>
+      </div>
+    </div>
+
+    <!-- Uzman Ajan Grid -->
+    <div id="agent-grid">
+
+      <!-- Researcher -->
+      <div class="agent-card" id="card-researcher" data-agent="researcher" data-status="idle">
+        <div class="card-header">
+          <div class="agent-avatar">🔬</div>
+          <div class="agent-meta">
+            <div class="agent-name">Aria <span style="font-size:10px;color:var(--text-dim);font-weight:400">— Researcher</span></div>
+            <div class="agent-role" id="role-researcher">phi4:14b</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="elapsed-badge" id="elapsed-researcher"></span>
+            <span class="status-badge" id="status-researcher">Bekliyor</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="persona-quote">"Cevap vermeden önce her şeyi öğrenirim."</div>
+          <div class="task-desc" id="task-researcher"></div>
+          <pre class="output-stream" id="output-researcher"></pre>
+          <div class="output-rendered" id="rendered-researcher"></div>
+          <div class="card-footer" style="margin-top:8px">
+            <div class="card-actions">
+              <button class="card-action-btn expand-btn" onclick="toggleExpand('researcher')" id="expand-researcher">⤢ Genişlet</button>
+              <button class="card-action-btn" onclick="openOutputModal('researcher')">📄 Tam Görünüm</button>
+              <button class="card-action-btn" onclick="copyOutput('researcher')">📋 Kopyala</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coder -->
+      <div class="agent-card" id="card-coder" data-agent="coder" data-status="idle">
+        <div class="card-header">
+          <div class="agent-avatar">💻</div>
+          <div class="agent-meta">
+            <div class="agent-name">Kenji <span style="font-size:10px;color:var(--text-dim);font-weight:400">— Coder</span></div>
+            <div class="agent-role" id="role-coder">qwen2.5-coder:14b</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="elapsed-badge" id="elapsed-coder"></span>
+            <span class="status-badge" id="status-coder">Bekliyor</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="persona-quote">"Çalışan kod değil, güzel ve çalışan kod."</div>
+          <div class="task-desc" id="task-coder"></div>
+          <pre class="output-stream" id="output-coder"></pre>
+          <div class="output-rendered" id="rendered-coder"></div>
+          <div class="card-footer" style="margin-top:8px">
+            <div class="card-actions">
+              <button class="card-action-btn expand-btn" onclick="toggleExpand('coder')" id="expand-coder">⤢ Genişlet</button>
+              <button class="card-action-btn" onclick="openOutputModal('coder')">📄 Tam Görünüm</button>
+              <button class="card-action-btn" onclick="copyOutput('coder')">📋 Kopyala</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reviewer -->
+      <div class="agent-card" id="card-reviewer" data-agent="reviewer" data-status="idle">
+        <div class="card-header">
+          <div class="agent-avatar">🔍</div>
+          <div class="agent-meta">
+            <div class="agent-name">Rex <span style="font-size:10px;color:var(--text-dim);font-weight:400">— Reviewer</span></div>
+            <div class="agent-role" id="role-reviewer">qwen2.5-coder:14b</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="verdict-badge" id="verdict-reviewer"></span>
+            <span class="elapsed-badge" id="elapsed-reviewer"></span>
+            <span class="status-badge" id="status-reviewer">Bekliyor</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="persona-quote">"Bir bug bile geçemez gözümden."</div>
+          <div class="task-desc" id="task-reviewer"></div>
+          <div class="revision-bar" id="revision-bar">🔄 <span id="revision-text">Revizyon başlıyor...</span></div>
+          <pre class="output-stream" id="output-reviewer"></pre>
+          <div class="output-rendered" id="rendered-reviewer"></div>
+          <div class="card-footer" style="margin-top:8px">
+            <div class="card-actions">
+              <button class="card-action-btn expand-btn" onclick="toggleExpand('reviewer')" id="expand-reviewer">⤢ Genişlet</button>
+              <button class="card-action-btn" onclick="openOutputModal('reviewer')">📄 Tam Görünüm</button>
+              <button class="card-action-btn" onclick="copyOutput('reviewer')">📋 Kopyala</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tester -->
+      <div class="agent-card" id="card-tester" data-agent="tester" data-status="idle">
+        <div class="card-header">
+          <div class="agent-avatar">🧪</div>
+          <div class="agent-meta">
+            <div class="agent-name">Zara <span style="font-size:10px;color:var(--text-dim);font-weight:400">— Tester</span></div>
+            <div class="agent-role" id="role-tester">qwen2.5-coder:14b</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="elapsed-badge" id="elapsed-tester"></span>
+            <span class="status-badge" id="status-tester">Bekliyor</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="persona-quote">"Her şeyi kırmaya çalışırım; dayanamayan geçemez."</div>
+          <div class="task-desc" id="task-tester"></div>
+          <pre class="output-stream" id="output-tester"></pre>
+          <div class="output-rendered" id="rendered-tester"></div>
+          <div class="card-footer" style="margin-top:8px">
+            <div class="card-actions">
+              <button class="card-action-btn expand-btn" onclick="toggleExpand('tester')" id="expand-tester">⤢ Genişlet</button>
+              <button class="card-action-btn" onclick="openOutputModal('tester')">📄 Tam Görünüm</button>
+              <button class="card-action-btn" onclick="copyOutput('tester')">📋 Kopyala</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Debugger -->
+      <div class="agent-card" id="card-debugger" data-agent="debugger" data-status="idle">
+        <div class="card-header">
+          <div class="agent-avatar">🐛</div>
+          <div class="agent-meta">
+            <div class="agent-name">Neo <span style="font-size:10px;color:var(--text-dim);font-weight:400">— Debugger</span></div>
+            <div class="agent-role" id="role-debugger">deepseek-r1:14b</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="elapsed-badge" id="elapsed-debugger"></span>
+            <span class="status-badge" id="status-debugger">Bekliyor</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="persona-quote">"Hatanın sebebini bulmak, düzeltmekten zordur."</div>
+          <div class="task-desc" id="task-debugger"></div>
+          <pre class="output-stream" id="output-debugger"></pre>
+          <div class="output-rendered" id="rendered-debugger"></div>
+          <div class="card-footer" style="margin-top:8px">
+            <div class="card-actions">
+              <button class="card-action-btn expand-btn" onclick="toggleExpand('debugger')" id="expand-debugger">⤢ Genişlet</button>
+              <button class="card-action-btn" onclick="openOutputModal('debugger')">📄 Tam Görünüm</button>
+              <button class="card-action-btn" onclick="copyOutput('debugger')">📋 Kopyala</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /agent-grid -->
+  </section><!-- /pipeline -->
+</div><!-- /main -->
+
+<!-- ═══════════════════ TERMINAL ═══════════════════ -->
+<div id="terminal">
+  <div class="term-header">
+    <div class="term-title">
+      <div class="dot"></div>
+      SİSTEM LOGU
+    </div>
+    <div class="term-actions">
+      <button class="term-btn" onclick="clearLog()">Temizle</button>
+      <button class="term-btn" onclick="copyLog()">Kopyala</button>
+    </div>
+  </div>
+  <div id="term-log"></div>
+</div>
+
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+<script>
+'use strict';
+
+// ── Durum ──────────────────────────────────────────────────────────
+const AGENTS = ['supervisor','researcher','coder','reviewer','tester','debugger'];
+const AGENT_LABELS = { supervisor:'supervisor', researcher:'researcher', coder:'coder', reviewer:'reviewer', tester:'tester', debugger:'debugger', system:'system' };
+
+const state = {
+  ws: null,
+  connected: false,
+  running: false,
+  session: { start: 0, success: 0, fail: 0 },
+  agents: Object.fromEntries(AGENTS.map(a => [a, {
+    status: 'idle', output: '', task: '', lineBuffer: '', startMs: 0, timer: null
+  }])),
+  history: [],
+};
+
+// ── WebSocket ──────────────────────────────────────────────────────
+function connect() {
+  const url = `ws://${location.host}/ws`;
+  const ws  = new WebSocket(url);
+  state.ws  = ws;
+
+  ws.onopen = () => {
+    state.connected = true;
+    updateBadge('ws-badge', '● Bağlandı', 'connected');
+    log('system', 'WebSocket bağlantısı kuruldu.', 'info');
+  };
+
+  ws.onclose = () => {
+    state.connected = false;
+    updateBadge('ws-badge', '● Bağlantı Kesildi', 'disconnected');
+    log('system', 'Bağlantı kesildi — yeniden deneniyor...', 'error');
+    setTimeout(connect, 3000);
+  };
+
+  ws.onerror = () => {
+    updateBadge('ws-badge', '● Hata', 'disconnected');
+  };
+
+  ws.onmessage = e => handleEvent(JSON.parse(e.data));
+}
+
+// ── Event Handler ──────────────────────────────────────────────────
+function handleEvent(ev) {
+  const { type, data = {} } = ev;
+
+  switch (type) {
+    case 'ready':
+      applyReady(data);
+      break;
+
+    case 'session.start':
+      onSessionStart(data);
+      break;
+
+    case 'plan.created':
+      onPlanCreated(data);
+      break;
+
+    case 'group.start':
+      log('system', `Paralel Grup ${data.group_id} başlıyor (${data.count} görev)`, 'info');
+      break;
+
+    case 'supervisor.plan_start':
+      setAgent('supervisor', 'running', 'Plan oluşturuluyor...');
+      break;
+
+    case 'supervisor.review_start':
+      setAgent('supervisor', 'running', 'Sonuçlar değerlendiriliyor...');
+      clearOutput('supervisor');
+      break;
+
+    case 'supervisor.stream':
+      appendOutput('supervisor', data.chunk || '');
+      break;
+
+    case 'supervisor.done':
+      setAgent('supervisor', 'done', 'Değerlendirme tamamlandı');
+      break;
+
+    case 'task.start':
+      setAgent(data.agent_type, 'running', data.description || '');
+      log(data.agent_type, `▶ ${data.description || ''}`, 'info');
+      break;
+
+    case 'task.stream':
+      appendOutput(data.agent_type, data.chunk || '');
+      break;
+
+    case 'task.complete':
+      setAgent(data.agent_type, data.success ? 'done' : 'error', '');
+      if (data.success) {
+        state.session.success++;
+        // Render formatted output when done
+        const rawEl = document.getElementById(`output-${data.agent_type}`);
+        if (rawEl) {
+          renderAgentOutput(data.agent_type, rawEl.textContent);
+          // Show reviewer verdict badge
+          if (data.agent_type === 'reviewer') {
+            showVerdict(rawEl.textContent);
+          }
+        }
+      } else {
+        state.session.fail++;
+      }
+      updateStats();
+      log(data.agent_type, `${data.success ? '✓' : '✗'} Tamamlandı (${data.duration_s}s)`,
+          data.success ? 'success' : 'error');
+      break;
+
+    case 'revision.start':
+      showRevisionBar(data.iteration, data.verdict);
+      break;
+
+    case 'neo.triggered':
+      log('debugger', `🐛 Neo devreye girdi — ${data.critical_count} kritik hata`, 'error');
+      break;
+
+    case 'mila.message_received':
+      addMilaHistory('system', `Mila mesajı aldı: "${data.message}"`);
+      log('supervisor', `📨 Mila mesaj alındı: ${data.message}`, 'info');
+      setRunning(true);
+      break;
+
+    case 'task.error':
+      setAgent(data.agent_type || 'system', 'error', data.error || '');
+      log(data.agent_type || 'system', `✗ ${data.error}`, 'error');
+      break;
+
+    case 'session.complete':
+      onSessionComplete(data);
+      break;
+
+    case 'workspace.files_saved':
+      onWorkspaceFiles(data);
+      break;
+
+    case 'supervisor_changed':
+      onSupervisorChanged(data);
+      break;
+
+    case 'stopped':
+      log('system', 'Görev durduruldu.', 'error');
+      AGENTS.forEach(a => setAgent(a, 'idle', ''));
+      stopSessionTimer();
+      document.getElementById('s-elapsed').textContent = '—';
+      setRunning(false);
+      break;
+
+    case 'error':
+      log('system', `⚠ ${data.message}`, 'error');
+      break;
+
+    case 'pong': break;
+  }
+}
+
+// ── Oturum Olayları ────────────────────────────────────────────────
+function applyReady(data) {
+  const label = `${data.supervisor_provider}:${data.supervisor_model}`;
+  document.getElementById('sup-label').textContent = `Supervisor: ${label}`;
+  document.getElementById('sup-model-label').textContent = `Supervisor · ${data.supervisor_model}`;
+  updateBadge('net-badge', data.online ? '🌐 Çevrimiçi' : '💻 Çevrimdışı', data.online ? 'online' : 'offline');
+  log('system', `Hazır — ${label} (${data.online ? 'çevrimiçi' : 'çevrimdışı'})`, 'info');
+}
+
+function onSessionStart(data) {
+  AGENTS.forEach(a => setAgent(a, 'idle', ''));
+  state.session = { start: Date.now(), success: 0, fail: 0 };
+  document.getElementById('plan-section').style.display = 'none';
+  document.getElementById('plan-viz').innerHTML = '';
+  updateStats();
+  log('system', `━━ Yeni Oturum: ${data.goal} ━━`, 'info');
+  startSessionTimer();
+}
+
+function onPlanCreated(data) {
+  setAgent('supervisor', 'done', `${data.tasks.length} görev planlandı`);
+  renderPlan(data);
+  log('supervisor', `Plan hazır: ${data.tasks.length} görev, ${data.total_groups} grup`, 'success');
+}
+
+function onSupervisorChanged(data) {
+  const label = `${data.provider}:${data.model}`;
+  document.getElementById('sup-label').textContent    = `Supervisor: ${label}`;
+  document.getElementById('sup-model-label').textContent = `Supervisor · ${data.model}`;
+  updateBadge('net-badge', data.online ? '🌐 Çevrimiçi' : '💻 Çevrimdışı', data.online ? 'online' : 'offline');
+  log('system', `Supervisor degistirildi: ${label}`, 'success');
+
+  // supState'i güncelle ve listeyi yeniden çiz
+  supState.current  = data;
+  supState.selected = { provider: data.provider, model: data.model };
+  renderSupList();
+}
+
+function onSessionComplete(data) {
+  setRunning(false);
+  stopSessionTimer();
+  document.getElementById('s-elapsed').textContent = `${data.duration_s}s`;
+  log('system', `━━ Tamamlandı: ${data.success_count}✓ ${data.fail_count}✗ (${data.duration_s}s) ━━`, 'success');
+  // Re-enable Mila direct line
+  const milaBtn = document.getElementById('mila-send-btn');
+  if (milaBtn) milaBtn.disabled = false;
+  // Hint user that they can now message Mila
+  addMilaHistory('system', '✓ Oturum tamamlandı. Devam talimatı verebilirsiniz.');
+}
+
+// ── Workspace ──────────────────────────────────────────────────
+const wsState = { project: '', files: [] };
+
+function onWorkspaceFiles(data) {
+  wsState.project = data.project || '';
+  const newFiles  = (data.files || []).map(f => {
+    // Strip absolute prefix, keep relative path
+    const parts = f.replace(/\\/g, '/').split('/workspace/');
+    return parts.length > 1 ? parts[1] : f.replace(/\\/g, '/');
+  });
+  newFiles.forEach(f => { if (!wsState.files.includes(f)) wsState.files.push(f); });
+  renderWorkspace();
+  log('system', `📁 ${newFiles.length} dosya kaydedildi → workspace/${wsState.project}/`, 'success');
+}
+
+function renderWorkspace() {
+  const empty    = document.getElementById('ws-empty');
+  const listEl   = document.getElementById('ws-file-list');
+  if (!wsState.files.length) { empty.style.display = ''; listEl.innerHTML = ''; return; }
+  empty.style.display = 'none';
+
+  const icons = { html:'🌐', css:'🎨', js:'⚡', ts:'⚡', py:'🐍', json:'📋',
+                  md:'📝', txt:'📄', sql:'🗄️', sh:'🔧', yml:'⚙️', yaml:'⚙️' };
+
+  // Project tag
+  const tag = wsState.project
+    ? `<div class="ws-project-tag">📁 ${escHtml(wsState.project)}</div>` : '';
+
+  listEl.innerHTML = tag + wsState.files.map(f => {
+    const ext  = f.split('.').pop().toLowerCase();
+    const icon = icons[ext] || '📄';
+    const name = f.split('/').pop();
+    return `<div class="ws-file-item" onclick="viewFile('${escHtml(f)}')" title="${escHtml(f)}">
+      <span class="ws-file-icon">${icon}</span>
+      <span class="ws-file-name">${escHtml(name)}</span>
+    </div>`;
+  }).join('');
+}
+
+async function viewFile(path) {
+  try {
+    const res  = await fetch(`/workspace/read?path=${encodeURIComponent(path)}`);
+    const data = await res.json();
+    if (data.error) { log('system', `⚠ ${data.error}`, 'error'); return; }
+    // Show in a modal-style overlay
+    showFileViewer(path, data.content);
+  } catch(e) { log('system', `⚠ Dosya okunamadı: ${e.message}`, 'error'); }
+}
+
+function showFileViewer(path, content) {
+  const existing = document.getElementById('file-viewer-modal');
+  if (existing) existing.remove();
+
+  const ext = path.split('.').pop().toLowerCase();
+  const modal = document.createElement('div');
+  modal.id = 'file-viewer-modal';
+  modal.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  `;
+  modal.innerHTML = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+                width:100%;max-width:860px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;
+                  padding:12px 16px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--font-mono);font-size:12px;color:var(--text)">📄 ${escHtml(path)}</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="copyFileContent()" style="font-size:11px;padding:4px 10px;
+            background:var(--bg-input);border:1px solid var(--border);border-radius:5px;
+            color:var(--text-mid);cursor:pointer">Kopyala</button>
+          <button onclick="document.getElementById('file-viewer-modal').remove()"
+            style="font-size:18px;background:none;border:none;color:var(--text-mid);cursor:pointer;line-height:1">×</button>
+        </div>
+      </div>
+      <pre id="file-viewer-content" style="margin:0;padding:16px;overflow:auto;
+        font-family:var(--font-mono);font-size:12px;color:var(--code);
+        line-height:1.5;white-space:pre;flex:1">${escHtml(content)}</pre>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function copyFileContent() {
+  const el = document.getElementById('file-viewer-content');
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent).then(() =>
+    log('system', '📋 Kopyalandı', 'info'));
+}
+
+// ── Markdown / Output Renderer ─────────────────────────────────────
+
+function escHtmlInline(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderAgentOutput(agentType, rawText) {
+  const renderedEl = document.getElementById(`rendered-${agentType}`);
+  const streamEl   = document.getElementById(`output-${agentType}`);
+  if (!renderedEl || !rawText.trim()) return;
+
+  let html = '';
+  // Split by fenced code blocks
+  const parts = rawText.split(/(```[\w]*\n[\s\S]*?```)/g);
+  for (const part of parts) {
+    const codeMatch = part.match(/^```([\w]*)\n([\s\S]*?)```$/);
+    if (codeMatch) {
+      const lang = codeMatch[1] || 'text';
+      const code = codeMatch[2];
+      html += `<div class="code-block">
+        <div class="code-block-header">
+          <span class="code-lang">${escHtmlInline(lang)}</span>
+          <button class="code-copy-btn" onclick="copyCode(this)">📋 Kopyala</button>
+        </div>
+        <pre><code>${escHtmlInline(code)}</code></pre>
+      </div>`;
+    } else {
+      // Render markdown-like text
+      let text = part;
+      // Headers
+      text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      text = text.replace(/^## (.+)$/gm,  '<h2>$1</h2>');
+      text = text.replace(/^# (.+)$/gm,   '<h2>$1</h2>');
+      // Bold
+      text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      // Inline code
+      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+      // Bullet lists
+      text = text.replace(/^[\s]*[-*] (.+)$/gm, '<li>$1</li>');
+      text = text.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
+      // Checkbox lists
+      text = text.replace(/^[\s]*- \[ \] (.+)$/gm, '<li>☐ $1</li>');
+      text = text.replace(/^[\s]*- \[x\] (.+)$/gm, '<li>☑ $1</li>');
+      // Severity icons
+      text = text.replace(/🔴 \[CRITICAL\]/g, '<span style="color:var(--error);font-weight:700">🔴 CRITICAL</span>');
+      text = text.replace(/🟠 \[MAJOR\]/g,    '<span style="color:var(--warning);font-weight:700">🟠 MAJOR</span>');
+      text = text.replace(/🟡 \[MINOR\]/g,    '<span style="color:#facc15;font-weight:700">🟡 MINOR</span>');
+      text = text.replace(/🟢 \[SUGGEST\]/g,  '<span style="color:var(--success);font-weight:700">🟢 SUGGEST</span>');
+      // Paragraphs
+      text = text.split(/\n\n+/).map(p => {
+        p = p.trim();
+        if (!p) return '';
+        if (p.startsWith('<')) return p;
+        return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+      }).join('');
+      html += text;
+    }
+  }
+  renderedEl.innerHTML = html;
+  // Hide raw stream, show rendered
+  if (streamEl) streamEl.classList.add('raw-hidden');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  if (!pre) return;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = '✓ Kopyalandı';
+    setTimeout(() => btn.textContent = '📋 Kopyala', 2000);
+  });
+}
+
+// ── Expand / Collapse ──────────────────────────────────────────────
+
+function toggleExpand(agentType) {
+  const streamEl   = document.getElementById(`output-${agentType}`);
+  const renderedEl = document.getElementById(`rendered-${agentType}`);
+  const btn        = document.getElementById(`expand-${agentType}`);
+  const target     = renderedEl && renderedEl.innerHTML ? renderedEl : streamEl;
+  if (!target) return;
+  const expanded = target.classList.toggle('expanded');
+  if (btn) btn.textContent = expanded ? '⤡ Küçült' : '⤢ Genişlet';
+}
+
+// ── Output Modal ───────────────────────────────────────────────────
+
+function openOutputModal(agentType) {
+  const streamEl   = document.getElementById(`output-${agentType}`);
+  const renderedEl = document.getElementById(`rendered-${agentType}`);
+  const raw = streamEl ? streamEl.textContent : '';
+  if (!raw) return;
+
+  const existing = document.getElementById('output-modal');
+  if (existing) existing.remove();
+
+  const agentNames = { supervisor:'Mila', researcher:'Aria', coder:'Kenji',
+                       reviewer:'Rex', tester:'Zara', debugger:'Neo' };
+  const name = agentNames[agentType] || agentType;
+
+  const modal = document.createElement('div');
+  modal.id = 'output-modal';
+  modal.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  `;
+
+  // Build formatted content
+  let bodyHtml = '';
+  if (renderedEl && renderedEl.innerHTML) {
+    bodyHtml = `<div style="font-size:13px;line-height:1.7;padding:20px;overflow-y:auto;flex:1;
+      color:var(--text)">${renderedEl.innerHTML}</div>`;
+  } else {
+    bodyHtml = `<pre style="margin:0;padding:20px;overflow:auto;flex:1;
+      font-family:var(--font-mono);font-size:12px;color:var(--code);
+      line-height:1.6;white-space:pre-wrap;">${escHtmlInline(raw)}</pre>`;
+  }
+
+  modal.innerHTML = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;
+                width:100%;max-width:980px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;
+                  padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <span style="font-family:var(--font-mono);font-size:13px;color:var(--text);font-weight:600">
+          ${name} — Tam Çıktı
+        </span>
+        <div style="display:flex;gap:8px">
+          <button onclick="navigator.clipboard.writeText(document.getElementById('modal-raw-content').textContent)"
+            style="font-size:11px;padding:5px 12px;background:var(--bg-input);border:1px solid var(--border);
+            border-radius:6px;color:var(--text-mid);cursor:pointer">📋 Tümünü Kopyala</button>
+          <button onclick="document.getElementById('output-modal').remove()"
+            style="font-size:20px;background:none;border:none;color:var(--text-mid);cursor:pointer;line-height:1">×</button>
+        </div>
+      </div>
+      <div id="modal-raw-content" style="display:none">${escHtmlInline(raw)}</div>
+      ${bodyHtml}
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function copyOutput(agentType) {
+  const el = document.getElementById(`output-${agentType}`);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent).then(() =>
+    log('system', `📋 ${agentType} çıktısı kopyalandı`, 'info'));
+}
+
+// ── Reviewer Verdict ───────────────────────────────────────────────
+
+function showVerdict(text) {
+  const badge = document.getElementById('verdict-reviewer');
+  if (!badge) return;
+  if (text.includes('APPROVED')) {
+    badge.textContent = '✓ APPROVED';
+    badge.className = 'verdict-badge approved';
+  } else if (text.includes('CHANGES_REQUIRED')) {
+    badge.textContent = '⚠ CHANGES REQUIRED';
+    badge.className = 'verdict-badge changes';
+  } else if (text.includes('REJECTED')) {
+    badge.textContent = '✗ REJECTED';
+    badge.className = 'verdict-badge rejected';
+  }
+}
+
+function showRevisionBar(iteration, verdict) {
+  const bar  = document.getElementById('revision-bar');
+  const text = document.getElementById('revision-text');
+  if (!bar || !text) return;
+  text.textContent = `Revizyon ${iteration} — ${verdict}. Kenji düzeltiyor...`;
+  bar.classList.add('visible');
+  log('system', `🔄 Revizyon ${iteration}: ${verdict}`, 'info');
+}
+
+async function uploadFiles(input) {
+  const files = input.files;
+  if (!files.length) return;
+  const fd = new FormData();
+  for (const f of files) fd.append('file', f);
+  // Upload one by one
+  for (const f of files) {
+    const sfd = new FormData();
+    sfd.append('file', f);
+    try {
+      const res  = await fetch('/workspace/upload?project=uploads', { method:'POST', body:sfd });
+      const data = await res.json();
+      if (data.saved) {
+        if (!wsState.files.includes(data.saved)) wsState.files.push(data.saved);
+        log('system', `📎 Yüklendi: ${data.name} (${(data.size/1024).toFixed(1)}KB)`, 'success');
+      }
+    } catch(e) { log('system', `⚠ Yükleme hatası: ${e.message}`, 'error'); }
+  }
+  renderWorkspace();
+  input.value = '';  // reset input
+}
+
+// Sayfa yüklendiğinde mevcut workspace dosyalarını getir
+async function loadWorkspaceFiles() {
+  try {
+    const res  = await fetch('/workspace/files');
+    const data = await res.json();
+    if (data.files && data.files.length) {
+      wsState.files = data.files;
+      renderWorkspace();
+    }
+  } catch(e) { /* silent */ }
+}
+
+// ── Ajan Kart Güncellemeleri ────────────────────────────────────────
+function setAgent(agent, status, task) {
+  const s   = state.agents[agent];
+  s.status  = status;
+  s.task    = task;
+
+  const card   = document.getElementById(`card-${agent}`);
+  const badge  = document.getElementById(`status-${agent}`);
+  const taskEl = document.getElementById(`task-${agent}`);
+
+  if (!card) return;
+  card.dataset.status = status;
+
+  const labels = { idle: 'Bekliyor', running: 'Çalışıyor', done: 'Tamamlandı', error: 'Hata', queued: 'Sırada' };
+  if (badge) badge.textContent = labels[status] || status;
+  if (taskEl) taskEl.textContent = task || '';
+
+  if (status === 'running') {
+    s.startMs = Date.now();
+    s.output  = '';
+    clearOutput(agent);
+    startElapsedTimer(agent);
+  } else if (status === 'idle') {
+    // Sıfırla — yeni görev başlamadan eski süreyi temizle
+    stopElapsedTimer(agent);
+    s.startMs = 0;
+    const el = document.getElementById(`elapsed-${agent}`);
+    if (el) el.textContent = '';
+  } else {
+    // done / error — son süreyi dondur
+    stopElapsedTimer(agent);
+    const el = document.getElementById(`elapsed-${agent}`);
+    if (el && s.startMs) {
+      el.textContent = `${((Date.now() - s.startMs) / 1000).toFixed(1)}s`;
+    }
+  }
+}
+
+// ── <think> filtresi (deepseek-r1 vb. için) ───────────────────────
+// Her agent için thinking-block durumu ayrı tutulur
+const thinkState = {};
+
+function filterThink(agent, chunk) {
+  if (!thinkState[agent]) thinkState[agent] = { inThink: false, visible: '' };
+  const ts   = thinkState[agent];
+  let   rest = chunk;
+
+  while (rest.length > 0) {
+    if (ts.inThink) {
+      const end = rest.indexOf('</think>');
+      if (end === -1) { rest = ''; break; }   // think bloğu devam ediyor, atla
+      rest       = rest.slice(end + 8);        // </think> sonrasını al
+      ts.inThink = false;
+    } else {
+      const start = rest.indexOf('<think>');
+      if (start === -1) { ts.visible += rest; rest = ''; break; }
+      ts.visible += rest.slice(0, start);      // <think> öncesini al
+      rest        = rest.slice(start + 7);
+      ts.inThink  = true;
+    }
+  }
+
+  const out      = ts.visible;
+  ts.visible     = '';
+  return out;
+}
+
+function appendOutput(agent, chunk) {
+  const s  = state.agents[agent];
+  if (!s) return;
+
+  // <think> bloklarını filtrele
+  const visible = filterThink(agent, chunk);
+  if (!visible) return;   // tamamen think bloğuysa gösterme
+
+  s.output += visible;
+
+  // Terminal: buffer → tam satırları log'la
+  s.lineBuffer = (s.lineBuffer || '') + visible;
+  const lines  = s.lineBuffer.split('\n');
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i].trim();
+    if (line) log(agent, line, 'stream');
+  }
+  s.lineBuffer = lines[lines.length - 1];
+
+  // Kart: son 700 karakter göster
+  const el = document.getElementById(`output-${agent}`);
+  if (!el) return;
+  const text = s.output;
+  el.textContent = text.length > 700 ? '…' + text.slice(-700) : text;
+  el.scrollTop   = el.scrollHeight;
+}
+
+function clearOutput(agent) {
+  const el = document.getElementById(`output-${agent}`);
+  if (el) el.textContent = '';
+  const s  = state.agents[agent];
+  if (s) { s.output = ''; s.lineBuffer = ''; }
+}
+
+// ── Zamanlayıcılar ─────────────────────────────────────────────────
+function startElapsedTimer(agent) {
+  const s = state.agents[agent];
+  stopElapsedTimer(agent);
+  s.timer = setInterval(() => {
+    const el = document.getElementById(`elapsed-${agent}`);
+    if (el && s.startMs) {
+      el.textContent = `${((Date.now() - s.startMs) / 1000).toFixed(1)}s`;
+    }
+  }, 100);
+}
+function stopElapsedTimer(agent) {
+  const s = state.agents[agent];
+  if (s && s.timer) { clearInterval(s.timer); s.timer = null; }
+}
+
+let _sessionTimer = null;
+function startSessionTimer() {
+  const start = Date.now();
+  _sessionTimer = setInterval(() => {
+    document.getElementById('s-elapsed').textContent =
+      `${((Date.now() - start) / 1000).toFixed(1)}s`;
+  }, 200);
+}
+function stopSessionTimer() {
+  if (_sessionTimer) { clearInterval(_sessionTimer); _sessionTimer = null; }
+}
+
+// ── Plan Vizualizasyonu ────────────────────────────────────────────
+const CHIP_COLORS = {
+  researcher: 'rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.4); color: #a78bfa',
+  coder:      'rgba(52,211,153,0.15);  border-color: rgba(52,211,153,0.4);  color: #34d399',
+  reviewer:   'rgba(251,191,36,0.15);  border-color: rgba(251,191,36,0.4);  color: #fbbf24',
+  tester:     'rgba(34,211,238,0.15);  border-color: rgba(34,211,238,0.4);  color: #22d3ee',
+  debugger:   'rgba(248,113,113,0.15); border-color: rgba(248,113,113,0.4); color: #f87171',
+};
+
+function renderPlan(data) {
+  const viz = document.getElementById('plan-viz');
+  viz.innerHTML = '';
+
+  // Gruplara ayır
+  const groups = {};
+  (data.tasks || []).forEach(t => {
+    const g = t.parallel_group ?? 0;
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(t);
+  });
+
+  const gids = Object.keys(groups).sort((a, b) => +a - +b);
+  gids.forEach((gid, idx) => {
+    const row = document.createElement('div');
+    row.className = 'plan-group';
+
+    const label = document.createElement('div');
+    label.className = 'plan-group-id';
+    label.textContent = `G${gid}`;
+    row.appendChild(label);
+
+    const chips = document.createElement('div');
+    chips.className = 'plan-chips';
+
+    groups[gid].forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = 'plan-chip';
+      const cs = CHIP_COLORS[t.type] || '';
+      chip.style.cssText = `background: ${cs}`;
+      chip.textContent = `${t.type} · ${(t.description || '').slice(0, 18)}…`;
+      chip.title = t.description;
+      chips.appendChild(chip);
+    });
+
+    row.appendChild(chips);
+    viz.appendChild(row);
+
+    if (idx < gids.length - 1) {
+      const arrow = document.createElement('div');
+      arrow.className = 'plan-arrow';
+      arrow.textContent = '↓';
+      viz.appendChild(arrow);
+    }
+  });
+
+  document.getElementById('plan-section').style.display = 'block';
+}
+
+// ── Stats ──────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('s-success').textContent = state.session.success || '—';
+  document.getElementById('s-fail').textContent    = state.session.fail    || '—';
+}
+
+// ── Terminal ───────────────────────────────────────────────────────
+function log(agent, msg, level = 'info') {
+  const el   = document.getElementById('term-log');
+  const line = document.createElement('div');
+  line.className = 'log-line';
+
+  const now   = new Date();
+  const ts    = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+
+  line.innerHTML = `
+    <span class="log-ts">${ts}</span>
+    <span class="log-agent ${agent}">[${agent}]</span>
+    <span class="log-msg ${level}">${escHtml(msg)}</span>
+  `;
+  el.appendChild(line);
+
+  // Max 500 satır
+  while (el.children.length > 500) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function clearLog() { document.getElementById('term-log').innerHTML = ''; }
+
+function copyLog() {
+  const lines = [...document.querySelectorAll('.log-line')]
+    .map(l => l.textContent.trim()).join('\n');
+  navigator.clipboard.writeText(lines).then(() => log('system', 'Log kopyalandı.', 'info'));
+}
+
+// ── Mila Direct Line ───────────────────────────────────────────────
+
+function addMilaHistory(role, text) {
+  const container = document.getElementById('mila-history');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = `mila-msg ${role}`;
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendMilaMessage() {
+  if (!state.connected) { log('system', 'WebSocket bağlı değil!', 'error'); return; }
+  if (state.running)    { log('system', 'Görev çalışıyor. Önce durdur.', 'error'); return; }
+
+  const input   = document.getElementById('mila-input');
+  const message = input.value.trim();
+  if (!message) { log('system', 'Mesaj boş olamaz.', 'error'); return; }
+
+  addMilaHistory('user', message);
+  input.value = '';
+
+  const btn = document.getElementById('mila-send-btn');
+  if (btn) btn.disabled = true;
+
+  setRunning(true);
+  state.ws.send(JSON.stringify({ type: 'message_mila', message }));
+  log('supervisor', `🧠 Mila'ya mesaj gönderildi: ${message}`, 'info');
+}
+
+// ── Çalıştır / Durdur ─────────────────────────────────────────────
+function sendRun() {
+  if (!state.connected) { log('system', 'WebSocket bağlı değil!', 'error'); return; }
+  const goal = document.getElementById('task-input').value.trim();
+  const ctx  = document.getElementById('ctx-input').value.trim();
+  if (!goal) { log('system', 'Lütfen görev girin.', 'error'); return; }
+
+  // Geçmişe ekle
+  state.history.unshift(goal);
+  state.history = state.history.slice(0, 8);
+  renderHistory();
+
+  setRunning(true);
+  state.ws.send(JSON.stringify({ type: 'run', goal, context: ctx }));
+}
+
+function sendStop() {
+  if (state.ws) state.ws.send(JSON.stringify({ type: 'stop' }));
+  // Sunucudan 'stopped' gelmeden önce çalışan sayaçları durdur
+  AGENTS.forEach(a => {
+    if (state.agents[a].status === 'running') stopElapsedTimer(a);
+  });
+}
+
+function setRunning(v) {
+  state.running = v;
+  const btn  = document.getElementById('run-btn');
+  const icon = document.getElementById('run-icon');
+  const text = document.getElementById('run-text');
+  const stop = document.getElementById('stop-btn');
+
+  btn.disabled    = v;
+  btn.className   = v ? 'btn btn-run running' : 'btn btn-run';
+  icon.innerHTML  = v ? '<span class="spinner"></span>' : '▶';
+  text.textContent= v ? 'Çalışıyor...' : 'Çalıştır';
+  stop.className  = v ? 'btn btn-stop visible' : 'btn btn-stop';
+}
+
+// ── Geçmiş ─────────────────────────────────────────────────────────
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  el.innerHTML = state.history.map(h =>
+    `<div class="history-item" onclick="loadHistory(this)" title="${escHtml(h)}">${escHtml(h)}</div>`
+  ).join('');
+}
+function loadHistory(el) {
+  document.getElementById('task-input').value = el.title;
+}
+
+// ── Badge Yardımcısı ───────────────────────────────────────────────
+function updateBadge(id, text, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className   = `badge ${cls}`;
+}
+
+// ── Enter ile gönder ───────────────────────────────────────────────
+document.getElementById('task-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendRun();
+});
+document.getElementById('mila-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMilaMessage();
+});
+
+// ── Supervisor Seçici ──────────────────────────────────────────────
+const supState = {
+  tab:      'cloud',   // 'cloud' | 'local'
+  items:    { cloud: [], local: [] },
+  selected: null,      // { provider, model }
+  current:  null,
+};
+
+async function loadSupModels() {
+  const loading = document.getElementById('sup-loading');
+  loading.classList.add('visible');
+  document.getElementById('sup-model-list').innerHTML = '';
+
+  try {
+    const res  = await fetch('/supervisor/models');
+    const data = await res.json();
+    supState.items.cloud  = data.cloud  || [];
+    supState.items.local  = data.local  || [];
+    supState.current      = data.current || null;
+
+    // Mevcut seçimi işaretle
+    if (supState.current) {
+      supState.selected = { provider: supState.current.provider, model: supState.current.model };
+      // Hangi tab'da?
+      supState.tab = supState.current.provider === 'ollama' ? 'local' : 'cloud';
+      setActiveTab(supState.tab);
+    }
+    renderSupList();
+  } catch(e) {
+    document.getElementById('sup-model-list').innerHTML =
+      '<div style="font:11px var(--font-mono);color:var(--error);padding:6px">Yüklenemedi</div>';
+  } finally {
+    loading.classList.remove('visible');
+  }
+}
+
+function setActiveTab(tab) {
+  document.getElementById('tab-cloud').classList.toggle('active', tab === 'cloud');
+  document.getElementById('tab-local').classList.toggle('active', tab === 'local');
+  document.getElementById('tab-cloud').classList.remove('local');
+  document.getElementById('tab-local').classList.toggle('local', true);
+  supState.tab = tab;
+}
+
+function switchSupTab(tab) {
+  setActiveTab(tab);
+  renderSupList();
+}
+
+function renderSupList() {
+  const list  = document.getElementById('sup-model-list');
+  const items = supState.items[supState.tab] || [];
+  const btn   = document.getElementById('sup-apply-btn');
+  const isLocal = supState.tab === 'local';
+
+  list.innerHTML = '';
+
+  if (items.length === 0) {
+    list.innerHTML = isLocal
+      ? `<div style="font:10px var(--font-mono);color:var(--text-dim);padding:8px 4px;line-height:1.6">
+           Ollama modeli bulunamadı.<br>
+           <span style="color:var(--supervisor)">ollama serve</span> çalışıyor mu?
+         </div>`
+      : `<div style="font:10px var(--font-mono);color:var(--text-dim);padding:8px 4px;line-height:1.7">
+           Bulut modeli yok.<br>
+           <span style="color:var(--text-mid)">.env dosyasına ekle:</span><br>
+           <span style="color:var(--supervisor)">GOOGLE_API_KEY=...</span><br>
+           <span style="opacity:.6">veya ANTHROPIC_API_KEY</span>
+         </div>`;
+    btn.classList.remove('visible');
+    return;
+  }
+
+  items.forEach(item => {
+    const isActive = supState.current &&
+      supState.current.provider === item.provider &&
+      supState.current.model    === item.model;
+    const isSelected = supState.selected &&
+      supState.selected.provider === item.provider &&
+      supState.selected.model    === item.model;
+
+    const div = document.createElement('div');
+    div.className = 'sup-model-item' +
+      (isSelected ? (isLocal ? ' selected local' : ' selected') : '');
+
+    const activeBadge = isActive
+      ? `<span style="font-size:9px;padding:1px 5px;border-radius:8px;
+           background:rgba(16,185,129,0.15);color:var(--success);
+           border:1px solid rgba(16,185,129,0.3);white-space:nowrap">aktif</span>`
+      : '';
+
+    div.innerHTML = `
+      <span class="sup-model-icon">${item.icon || (isLocal ? '💻' : '🌐')}</span>
+      <div class="sup-model-info">
+        <div class="sup-model-name">${escHtml(item.label || item.model)}</div>
+        <div class="sup-model-sub">${item.provider}${isLocal && item.installed ? ' · kurulu' : ''}</div>
+      </div>
+      ${activeBadge}
+    `;
+    div.onclick = () => selectSupModel(item);
+    list.appendChild(div);
+  });
+
+  // Uygula butonu: mevcut aktiften farklı seçildiyse göster
+  const isDifferent = supState.selected &&
+    (supState.selected.provider !== supState.current?.provider ||
+     supState.selected.model    !== supState.current?.model);
+
+  btn.classList.toggle('visible', isDifferent || false);
+  btn.classList.toggle('local-mode', isLocal);
+}
+
+function selectSupModel(item) {
+  supState.selected = { provider: item.provider, model: item.model };
+  renderSupList();
+}
+
+function applySupvisor() {
+  if (!state.connected || !supState.selected) return;
+  if (state.running) { log('system', 'Görev çalışırken supervisor değiştirilemez.', 'error'); return; }
+
+  state.ws.send(JSON.stringify({
+    type:     'set_supervisor',
+    provider: supState.selected.provider,
+    model:    supState.selected.model,
+  }));
+
+  document.getElementById('sup-apply-btn').classList.remove('visible');
+  log('system', `Supervisor değiştiriliyor: ${supState.selected.provider}:${supState.selected.model}`, 'info');
+}
+
+// ── Başlat ─────────────────────────────────────────────────────────
+connect();
+loadSupModels();
+loadWorkspaceFiles();
+
+// Bellek sayısını çek (ChromaDB oturum sayısı)
+fetch('/health').then(r => r.json()).then(d => {
+  document.getElementById('s-memory').textContent =
+    typeof d.memory_count === 'number' ? `${d.memory_count} otr` : '—';
+}).catch(() => {});
+</script>
+</body>
+</html>
