@@ -30,6 +30,9 @@ workspace/
 # Claude
 .claude/
 
+# Binary tools (platform-specific executables)
+tools/resources/bin/
+
 # OS
 .DS_Store
 Thumbs.db
