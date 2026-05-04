@@ -38,6 +38,13 @@
   --zara:   #22d3ee; --zara-d:  rgba(34,211,238,.12);
   --neo:    #f87171; --neo-d:   rgba(248,113,113,.12);
 
+  /* Yeni Ajanlar */
+  --turbo:  #f97316; --turbo-d: rgba(249,115,22,.12);
+  --sigma:  #e879f9; --sigma-d: rgba(232,121,249,.12);
+  --nova:   #4ade80; --nova-d:  rgba(74,222,128,.12);
+  --ziya:   #f472b6; --ziya-d:  rgba(244,114,182,.12);
+  --lara:   #f59e0b; --lara-d:  rgba(245,158,11,.12);
+
   --ok:      #10b981;
   --err:     #ef4444;
   --warn:    #f59e0b;
@@ -233,8 +240,45 @@ input, textarea { font-family: var(--ui); color: var(--text); }
   background: var(--bg-hover); color: var(--text);
   box-shadow: 0 1px 3px rgba(0,0,0,.3);
 }
-.mode-btn.active.code  { color: var(--mila); }
-.mode-btn.active.prop  { color: #f59e0b; }
+.mode-btn.active.code    { color: var(--mila); }
+.mode-btn.active.prop    { color: var(--lara); }
+.mode-btn.active.car     { color: var(--turbo); }
+.mode-btn.active.finance { color: var(--nova); }
+.mode-btn.active.osint   { color: var(--sigma); }
+.mode-btn.active.music   { color: var(--ziya); }
+
+/* ── Dosya Eki (Attachment) ── */
+.attach-bar {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 0 0 8px; max-height: 80px; overflow-y: auto;
+}
+.attach-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--bg-card); border: 1px solid var(--border-mid);
+  border-radius: 20px; padding: 3px 10px 3px 8px;
+  font-size: 11.5px; color: var(--text-soft); max-width: 200px;
+}
+.attach-chip .chip-icon { font-size: 12px; flex-shrink: 0; }
+.attach-chip .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex:1; }
+.attach-chip .chip-remove {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  background: var(--border-mid); color: var(--text-mid);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; cursor: pointer; transition: .1s;
+}
+.attach-chip .chip-remove:hover { background: var(--err); color: #fff; }
+.attach-chip.loading { opacity: .6; }
+.attach-chip.image { border-color: rgba(129,140,248,.3); }
+.attach-chip.pdf   { border-color: rgba(248,113,113,.3); }
+
+/* Paperclip button */
+.attach-btn {
+  width: 32px; height: 32px; border-radius: var(--rs); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid); transition: .15s;
+}
+.attach-btn:hover { background: var(--bg-hover); color: var(--text); }
+.attach-btn.has-file { color: var(--mila); }
 
 /* ── CHAT MAIN ── */
 .chat-main {
@@ -964,8 +1008,12 @@ input, textarea { font-family: var(--ui); color: var(--text); }
   <div class="header-center">
     <!-- Mode Switcher -->
     <div class="mode-switcher">
-      <button class="mode-btn code active" id="mode-code" onclick="switchAppMode('code')">💻 Kod</button>
-      <button class="mode-btn prop" id="mode-prop" onclick="switchAppMode('property')">🏠 İlan Arama</button>
+      <button class="mode-btn code active" id="mode-code"    onclick="switchAppMode('code')">💻 Kod</button>
+      <button class="mode-btn prop"        id="mode-prop"    onclick="switchAppMode('property')">🏠 Emlak</button>
+      <button class="mode-btn car"         id="mode-car"     onclick="switchAppMode('car')">🚗 Araç</button>
+      <button class="mode-btn finance"     id="mode-finance" onclick="switchAppMode('finance')">📈 Finans</button>
+      <button class="mode-btn osint"       id="mode-osint"   onclick="switchAppMode('osint')">🔍 OSINT</button>
+      <button class="mode-btn music"       id="mode-music"   onclick="switchAppMode('music')">🎵 Müzik</button>
     </div>
   </div>
 
@@ -1069,7 +1117,19 @@ input, textarea { font-family: var(--ui); color: var(--text); }
 
     <div class="input-area">
       <div class="input-inner">
+        <!-- Ekli dosyalar -->
+        <div class="attach-bar" id="attach-bar" style="display:none;"></div>
         <div class="input-box">
+          <!-- Dosya/fotoğraf yükleme butonu -->
+          <button class="attach-btn" id="attach-btn" onclick="triggerFileUpload()" title="Dosya veya fotoğraf ekle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
+          <!-- Gizli dosya input -->
+          <input type="file" id="file-input" style="display:none;"
+            accept="image/*,.pdf,.txt,.md,.py,.js,.ts,.html,.css,.json,.yaml,.yml,.csv,.xml,.sh,.rs,.go,.java,.cpp,.c,.h"
+            multiple onchange="onFilesSelected(event)">
           <textarea class="main-textarea" id="main-input"
             placeholder="Mila'ya bir görev ver..."
             rows="1"
@@ -1086,7 +1146,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
             <div class="ws-dot connecting" id="ws-dot"></div>
             <span id="ws-label">Bağlanıyor...</span>
           </div>
-          <span id="input-hint-text">Ctrl+Enter · gönder</span>
+          <span id="input-hint-text">Ctrl+Enter · gönder &nbsp;|&nbsp; 📎 Dosya/foto ekle</span>
         </div>
       </div>
     </div>
@@ -1126,25 +1186,33 @@ const AGENTS = [
   { id:'reviewer',   name:'Rex',   icon:'🔍', color:'var(--rex)',   colorD:'var(--rex-d)'   },
   { id:'tester',     name:'Zara',  icon:'🧪', color:'var(--zara)',  colorD:'var(--zara-d)'  },
   { id:'debugger',   name:'Neo',   icon:'🐛', color:'var(--neo)',   colorD:'var(--neo-d)'   },
+  // Domain ajanlar (panel için)
+  { id:'property', name:'Lara',  icon:'🏠', color:'var(--lara)',  colorD:'var(--lara-d)', domain:true },
+  { id:'car',      name:'Turbo', icon:'🚗', color:'var(--turbo)', colorD:'var(--turbo-d)', domain:true },
+  { id:'finance',  name:'Nova',  icon:'📈', color:'var(--nova)',  colorD:'var(--nova-d)',  domain:true },
+  { id:'osint',    name:'Sigma', icon:'🔍', color:'var(--sigma)', colorD:'var(--sigma-d)', domain:true },
+  { id:'music',    name:'Ziya',  icon:'🎵', color:'var(--ziya)',  colorD:'var(--ziya-d)',  domain:true },
 ];
 
 const state = {
   ws: null,
   connected: false,
   running: false,
-  clarifying: false,      // true when waiting for clarification answers
+  clarifying: false,
   mode: 'idle',           // 'idle' | 'running' | 'completed'
-  appMode: 'code',        // 'code' | 'property'
-  activePanel: 'agents',  // 'agents' | 'files'
+  appMode: 'code',        // 'code'|'property'|'car'|'finance'|'osint'|'music'
+  activePanel: 'agents',
   sessionCount: 0,
-  currentMsgId: null,     // current Mila message DOM id
-  reviewPhase: false,     // true when supervisor.review_start fired
-  agentOutputs: {},       // agentId -> full text output
-  agentTimers: {},        // agentId -> intervalId
-  agentStartMs: {},       // agentId -> startTimestamp
-  planTasks: [],          // current plan task list
+  currentMsgId: null,
+  reviewPhase: false,
+  agentOutputs: {},
+  agentTimers: {},
+  agentStartMs: {},
+  planTasks: [],
   wsRetries: 0,
   supInfo: {},
+  // Dosya yükleme
+  attachments: [],        // [{name, type, content, icon}]
 };
 
 const $ = id => document.getElementById(id);
@@ -1226,6 +1294,22 @@ function handleEvent(ev) {
     case 'property.status':    onPropertyStatus(data); break;
     case 'property.done':      onPropertyDone(data); break;
     case 'property.results':   onPropertyResults(data); break;
+    // Araç
+    case 'car.status':         onDomainStatus('car', data); break;
+    case 'car.done':           onCarDone(data); break;
+    case 'car.results':        onCarResults(data); break;
+    // Finans
+    case 'finance.status':     onDomainStatus('finance', data); break;
+    case 'finance.done':       onFinanceDone(data); break;
+    case 'finance.results':    onFinanceResults(data); break;
+    // OSINT
+    case 'osint.status':       onDomainStatus('osint', data); break;
+    case 'osint.done':         onOsintDone(data); break;
+    case 'osint.results':      onOsintResults(data); break;
+    // Müzik
+    case 'music.status':       onDomainStatus('music', data); break;
+    case 'music.done':         onMusicDone(data); break;
+    case 'music.results':      onMusicResults(data); break;
     case 'pong': break;
   }
 }
@@ -1560,32 +1644,52 @@ function onSupChanged(data) {
 /* ═══════════════════════════════════════════════════════
    APP MODE SWITCHER
 ═══════════════════════════════════════════════════════ */
+const MODE_CONFIG = {
+  code:     { placeholder: "Mila'ya bir görev ver...",                           hint: 'Ctrl+Enter · gönder · 📎 dosya ekle' },
+  property: { placeholder: "Emlak ara: Kadıköy 2+1 kiralık daire 10000-15000 TL...", hint: 'Enter ile ara · emlakjet.com' },
+  car:      { placeholder: "Araç ara: 2020 BMW 3 serisi dizel otomatik 500k altı...", hint: 'Enter ile ara · arabam.com' },
+  finance:  { placeholder: "Hisse/kripto/döviz sorgula: AAPL fiyatı, Bitcoin analizi...", hint: 'Enter ile sorgula · yfinance' },
+  osint:    { placeholder: "Kullanıcı adı ara: @kullanici_adi veya 'doguayd kullanıcısını bul'...", hint: 'Enter ile ara · 3000+ site · maigret' },
+  music:    { placeholder: "Müzik tanımla: 30 saniyelik melankolik piyano parçası...", hint: 'Enter ile üret · ACE-Step · lokal GPU' },
+};
+
 function switchAppMode(mode) {
   state.appMode = mode;
 
-  $('mode-code').classList.toggle('active', mode === 'code');
-  $('mode-prop').classList.toggle('active', mode === 'property');
+  // Mode butonları
+  ['code','prop','car','finance','osint','music'].forEach(id => {
+    const el = $(
+      id === 'code' ? 'mode-code' :
+      id === 'prop' ? 'mode-prop' :
+      'mode-' + id
+    );
+    if (el) el.classList.remove('active');
+  });
+  const activeId = mode === 'code' ? 'mode-code' : mode === 'property' ? 'mode-prop' : 'mode-' + mode;
+  const activeEl = $(activeId);
+  if (activeEl) activeEl.classList.add('active');
 
   const chatArea = $('chat-area');
   const propArea = $('property-area');
   const inp      = $('main-input');
   const hintTxt  = $('input-hint-text');
+  const cfg      = MODE_CONFIG[mode] || MODE_CONFIG.code;
 
   if (mode === 'code') {
     chatArea.classList.remove('hidden');
     propArea.classList.remove('active');
-    inp.placeholder = "Mila'ya bir görev ver...";
-    if (hintTxt) hintTxt.textContent = 'Ctrl+Enter · gönder';
-  } else {
+  } else if (mode === 'property') {
     chatArea.classList.add('hidden');
     propArea.classList.add('active');
-    inp.placeholder = "İlan ara: Kadıköy 2+1 kiralık daire 10000-15000 TL...";
-    if (hintTxt) hintTxt.textContent = 'Enter ile ara · sahibinden.com';
-    // Show welcome if no results yet
-    if (!$('prop-grid').children.length && !state.running) {
-      showPropWelcome();
-    }
+    if (!$('prop-grid').children.length && !state.running) showPropWelcome();
+  } else {
+    // Diğer modlar için chat area kullan
+    chatArea.classList.remove('hidden');
+    propArea.classList.remove('active');
   }
+
+  inp.placeholder = cfg.placeholder;
+  if (hintTxt) hintTxt.textContent = cfg.hint;
   updateSendBtn();
 }
 
@@ -1736,10 +1840,15 @@ function renderPropertyResults(result) {
 ═══════════════════════════════════════════════════════ */
 const HISTORY_KEY = 'mila_history_v2';
 
+const MODE_ICONS = {
+  code: '💻', property: '🏠', car: '🚗',
+  finance: '📈', osint: '🔍', music: '🎵',
+};
+
 function saveHistoryItem(mode, firstMsg) {
   const id    = state.currentMsgId || ('s-' + Date.now());
   const title = firstMsg.slice(0, 60) + (firstMsg.length > 60 ? '…' : '');
-  const icon  = mode === 'property' ? '🏠' : '💻';
+  const icon  = MODE_ICONS[mode] || '💬';
   const item  = { id, title, icon, ts: Date.now(), mode };
 
   const history = getHistory();
@@ -1848,25 +1957,95 @@ function handleSend() {
   if (state.running) { stopTask(); return; }
   if (state.clarifying) return;
   const val = $('main-input').value.trim();
-  if (!val) return;
+  if (!val && state.attachments.length === 0) return;
   $('main-input').value = '';
   autoResize($('main-input'));
 
+  // Domain modlar
   if (state.appMode === 'property') {
-    sendPropertySearch(val);
-    return;
+    sendPropertySearch(val); return;
+  }
+  if (state.appMode === 'car') {
+    sendCarSearch(val); return;
+  }
+  if (state.appMode === 'finance') {
+    sendFinanceAnalyze(val); return;
+  }
+  if (state.appMode === 'osint') {
+    sendOsintSearch(val); return;
+  }
+  if (state.appMode === 'music') {
+    sendMusicGenerate(val); return;
   }
 
-  // Code mode
-  appendUserMsg(val);
-  saveHistoryItem('code', val);  // persist to localStorage
+  // Kod modu — ekleri context'e dahil et
+  let goal    = val;
+  let context = '';
+  if (state.attachments.length > 0) {
+    const attachCtx = state.attachments
+      .map(a => a.content)
+      .join('\n\n---\n\n');
+    context = attachCtx;
+    clearAttachments();
+  }
+
+  const displayText = val || (state.attachments.length > 0 ? '[Dosya eklendi]' : '');
+  appendUserMsg(displayText);
+  saveHistoryItem('code', displayText);
   createMilaMsg();
 
   if (state.mode === 'completed') {
-    send({ type: 'message_mila', message: val });
+    send({ type: 'message_mila', message: goal, context });
   } else {
-    send({ type: 'run', goal: val, context: '' });
+    send({ type: 'run', goal, context });
   }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DOMAIN AGENT SENDERS
+═══════════════════════════════════════════════════════ */
+function sendCarSearch(query) {
+  if (!query) return;
+  state.running = true;
+  updateSendBtn();
+  appendUserMsg(`🚗 ${query}`);
+  saveHistoryItem('car', query);
+  createMilaMsg();
+  $('current-mila-msg').innerHTML = `<em style="color:var(--turbo)">Turbo araç arıyor...</em>`;
+  send({ type: 'car_search', query });
+}
+
+function sendFinanceAnalyze(query) {
+  if (!query) return;
+  state.running = true;
+  updateSendBtn();
+  appendUserMsg(`📈 ${query}`);
+  saveHistoryItem('finance', query);
+  createMilaMsg();
+  $('current-mila-msg').innerHTML = `<em style="color:var(--nova)">Nova piyasa verilerini çekiyor...</em>`;
+  send({ type: 'finance_analyze', query });
+}
+
+function sendOsintSearch(query) {
+  if (!query) return;
+  state.running = true;
+  updateSendBtn();
+  appendUserMsg(`🔍 ${query}`);
+  saveHistoryItem('osint', query);
+  createMilaMsg();
+  $('current-mila-msg').innerHTML = `<em style="color:var(--sigma)">Sigma 3000+ sitede tarıyor...</em>`;
+  send({ type: 'osint_search', query });
+}
+
+function sendMusicGenerate(query) {
+  if (!query) return;
+  state.running = true;
+  updateSendBtn();
+  appendUserMsg(`🎵 ${query}`);
+  saveHistoryItem('music', query);
+  createMilaMsg();
+  $('current-mila-msg').innerHTML = `<em style="color:var(--ziya)">Ziya müzik üretiyor...</em>`;
+  send({ type: 'music_generate', query });
 }
 
 function stopTask() {
@@ -2481,12 +2660,270 @@ function toggleSidebar() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   DOMAIN AGENT EVENTS
+═══════════════════════════════════════════════════════ */
+function onDomainStatus(domain, data) {
+  const colors = { car:'turbo', finance:'nova', osint:'sigma', music:'ziya', property:'lara' };
+  const c = colors[domain] || 'mila';
+  const el = $('current-mila-msg');
+  if (el) el.innerHTML = `<em style="color:var(--${c})">${escHtml(data.message || '')}</em>`;
+}
+
+// ── Araç ──────────────────────────────────────────────
+function onCarDone(data) {
+  state.running = false;
+  updateSendBtn();
+  const el = $('current-mila-msg');
+  if (el) {
+    el.innerHTML = `<span style="color:var(--turbo)">🚗 ${escHtml(data.summary || '')}</span>
+      <br><small style="color:var(--text-dim)">${data.count||0} araç · ${data.elapsed_s||0}s</small>`;
+  }
+}
+
+function onCarResults(data) {
+  if (!data.listings || !data.listings.length) return;
+  const el = $('current-mila-msg');
+  if (!el) return;
+
+  const cards = data.listings.slice(0,10).map(l => `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin:6px 0;display:flex;gap:10px;align-items:flex-start">
+      ${l.image_url ? `<img src="${escHtml(l.image_url)}" style="width:80px;height:60px;object-fit:cover;border-radius:var(--rs);flex-shrink:0" onerror="this.style.display='none'">` : ''}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:500;font-size:13px;color:var(--turbo)">${escHtml(l.price)}</div>
+        <div style="font-size:12.5px;color:var(--text);margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(l.title)}</div>
+        <div style="font-size:11px;color:var(--text-mid)">${[l.year,l.km,l.fuel,l.gear].filter(Boolean).join(' · ')}</div>
+        <div style="font-size:11px;color:var(--text-dim)">${escHtml(l.location)}</div>
+      </div>
+      ${l.url ? `<a href="${escHtml(l.url)}" target="_blank" style="font-size:11px;color:var(--mila);flex-shrink:0">Bak →</a>` : ''}
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div style="margin-bottom:8px;color:var(--text-soft);font-size:13px">${escHtml(data.summary || '')}</div>
+    ${cards}
+    ${data.search_url ? `<a href="${escHtml(data.search_url)}" target="_blank" style="font-size:11px;color:var(--mila)">Tümünü arabam.com'da gör →</a>` : ''}`;
+}
+
+// ── Finans ────────────────────────────────────────────
+function onFinanceDone(data) {
+  state.running = false;
+  updateSendBtn();
+}
+
+function onFinanceResults(data) {
+  const el = $('current-mila-msg');
+  if (!el) return;
+
+  const tickers = (data.data || []).filter(d => !d.error).map(d => {
+    const chg  = d.change_pct != null ? d.change_pct : null;
+    const chgStr = chg != null ? `<span style="color:${chg>=0?'var(--ok)':'var(--err)'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>` : '';
+    return `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;margin:4px 0;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:11px;color:var(--text-dim)">${escHtml(d.ticker)}</div>
+        <div style="font-size:12.5px;color:var(--text)">${escHtml(d.name||d.ticker)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:600;color:var(--nova)">${d.current_price ?? '?'} <small style="font-size:10px;color:var(--text-dim)">${escHtml(d.currency||'')}</small></div>
+        <div style="font-size:11.5px">${chgStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="color:var(--text-soft);font-size:13px;margin-bottom:10px">${escHtml(data.summary||'')}</div>
+    ${tickers}`;
+}
+
+// ── OSINT ─────────────────────────────────────────────
+function onOsintDone(data) {
+  state.running = false;
+  updateSendBtn();
+}
+
+function onOsintResults(data) {
+  const el = $('current-mila-msg');
+  if (!el) return;
+
+  const sites = (data.sites || []).filter(s => s.status === 'bulundu').slice(0, 20);
+  const siteHtml = sites.map(s => `
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border-dim)">
+      <span style="color:var(--ok);font-size:11px">●</span>
+      <span style="font-size:12.5px;color:var(--text);flex:1">${escHtml(s.site)}</span>
+      ${s.url ? `<a href="${escHtml(s.url)}" target="_blank" style="font-size:11px;color:var(--mila)">→</a>` : ''}
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div style="color:var(--text-soft);font-size:13px;margin-bottom:10px">${escHtml(data.summary||'')}</div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+      <div style="font-size:11px;color:var(--sigma);margin-bottom:8px">
+        🔍 <strong>${escHtml(data.username||'')}</strong> — ${data.found_count||0} profil bulundu
+      </div>
+      ${siteHtml || '<div style="color:var(--text-dim);font-size:12px">Profil bulunamadı</div>'}
+    </div>`;
+}
+
+// ── Müzik ─────────────────────────────────────────────
+function onMusicDone(data) {
+  state.running = false;
+  updateSendBtn();
+  const el = $('current-mila-msg');
+  if (!el) return;
+
+  if (data.success && data.path) {
+    el.innerHTML = `
+      <div style="color:var(--ziya);font-weight:500;margin-bottom:8px">🎵 Müzik üretildi!</div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px">${escHtml(data.tags||'')}</div>
+        <audio controls style="width:100%;margin-top:4px">
+          <source src="/workspace/read?path=${encodeURIComponent(data.path)}" type="audio/wav">
+        </audio>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:6px">📁 ${escHtml(data.path||'')}</div>
+      </div>`;
+  } else {
+    el.innerHTML = `<div style="color:var(--text-soft);font-size:13px">${escHtml(data.summary||'')}</div>`;
+  }
+}
+
+function onMusicResults(data) { /* handled in onMusicDone */ }
+
+/* ═══════════════════════════════════════════════════════
+   DOSYA YÜKLEME (MULTIMODAL)
+═══════════════════════════════════════════════════════ */
+function triggerFileUpload() {
+  $('file-input').click();
+}
+
+async function onFilesSelected(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';  // Reset so same file can be selected again
+
+  for (const file of files) {
+    await uploadFile(file);
+  }
+}
+
+async function uploadFile(file) {
+  const chipId = 'chip-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+
+  // Yükleme chip'i ekle (loading state)
+  const icon = getAttachIcon(file.type, file.name);
+  addAttachChip(chipId, icon, file.name, true);
+
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const resp = await fetch('/upload/chat', { method: 'POST', body: form });
+    const data = await resp.json();
+
+    if (data.error) {
+      removeAttachChip(chipId);
+      showToast(`Yükleme hatası: ${data.error}`, 'error');
+      return;
+    }
+
+    // Chip'i güncelle (loaded state)
+    updateAttachChip(chipId, icon, file.name, false);
+
+    // State'e ekle
+    state.attachments.push({
+      id:      chipId,
+      name:    file.name,
+      type:    data.type,
+      content: data.content,
+      icon,
+    });
+
+    updateAttachBtn();
+
+  } catch (err) {
+    removeAttachChip(chipId);
+    showToast(`Yükleme başarısız: ${err.message}`, 'error');
+  }
+}
+
+function addAttachChip(id, icon, name, loading) {
+  const bar = $('attach-bar');
+  bar.style.display = 'flex';
+
+  const chip = document.createElement('div');
+  chip.className = 'attach-chip' + (loading ? ' loading' : '');
+  chip.id = id;
+  chip.innerHTML = `
+    <span class="chip-icon">${icon}</span>
+    <span class="chip-name">${escHtml(name)}</span>
+    ${loading ? '<span class="chip-remove">⋯</span>' : `<span class="chip-remove" onclick="removeAttachment('${id}')">✕</span>`}`;
+  bar.appendChild(chip);
+}
+
+function updateAttachChip(id, icon, name, loading) {
+  const chip = $(id);
+  if (!chip) return;
+  chip.classList.remove('loading');
+  chip.innerHTML = `
+    <span class="chip-icon">${icon}</span>
+    <span class="chip-name">${escHtml(name)}</span>
+    <span class="chip-remove" onclick="removeAttachment('${id}')">✕</span>`;
+}
+
+function removeAttachChip(id) {
+  const chip = $(id);
+  if (chip) chip.remove();
+  const bar = $('attach-bar');
+  if (bar && !bar.children.length) bar.style.display = 'none';
+}
+
+function removeAttachment(id) {
+  state.attachments = state.attachments.filter(a => a.id !== id);
+  removeAttachChip(id);
+  updateAttachBtn();
+}
+
+function clearAttachments() {
+  state.attachments = [];
+  const bar = $('attach-bar');
+  if (bar) { bar.innerHTML = ''; bar.style.display = 'none'; }
+  updateAttachBtn();
+}
+
+function updateAttachBtn() {
+  const btn = $('attach-btn');
+  if (btn) btn.classList.toggle('has-file', state.attachments.length > 0);
+}
+
+function getAttachIcon(mime, name) {
+  if (mime && mime.startsWith('image/')) return '🖼️';
+  const ext = name.split('.').pop().toLowerCase();
+  const iconMap = {
+    pdf:'📄', py:'🐍', js:'🟨', ts:'🔷', html:'🌐', css:'🎨',
+    json:'📋', md:'📝', txt:'📝', sh:'⚡', go:'🔵', rs:'🦀',
+    yaml:'⚙️', yml:'⚙️', csv:'📊', xml:'📋',
+  };
+  return iconMap[ext] || '📎';
+}
+
+function showToast(msg, type='info') {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;background:var(--bg-card);border:1px solid var(${type==='error'?'--err':'--border'});border-radius:var(--r);padding:10px 16px;font-size:13px;color:var(--text);z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3)`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+/* ── Paste desteği (Ctrl+V resim) ── */
+document.addEventListener('paste', async (e) => {
+  const items = Array.from(e.clipboardData?.items || []);
+  const imgItem = items.find(i => i.type.startsWith('image/'));
+  if (!imgItem) return;
+  e.preventDefault();
+  const file = imgItem.getAsFile();
+  if (file) await uploadFile(new File([file], `paste_${Date.now()}.png`, { type: file.type }));
+});
+
+/* ═══════════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════════ */
 connect();
 refreshAgentPanel('idle');
-renderHistory();          // date-grouped conversation history
-// Don't load file tree on startup — only when panel is opened
+renderHistory();
 </script>
 </body>
 </html>

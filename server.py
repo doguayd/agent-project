@@ -2,19 +2,22 @@
 FastAPI WebSocket Sunucusu
 ==========================
 Endpoints:
-  GET  /                → index.html
-  GET  /health          → { ok, supervisor, online, ollama_models }
+  GET  /                  → index.html
+  GET  /health            → { ok, supervisor, online, ollama_models }
   GET  /supervisor/models → Mevcut Ollama modelleri listesi
-  WS   /ws              → Gerçek zamanlı ajan event akışı
+  POST /upload/chat       → Dosya/fotoğraf yükle, içerik çıkar (multimodal)
+  WS   /ws                → Gerçek zamanlı ajan event akışı
 
-WS Mesajları:
-  → run           { goal, context }
-  → stop          {}
-  → set_supervisor { provider, model }   ← YENİ: arayüzden model değiştir
-  → ping          {}
-  → check         {}
-  ← ready, plan.created, task.start/stream/complete,
-    supervisor.stream/done, session.complete, supervisor_changed ...
+WS Mesajları (→ gelen, ← giden):
+  → run              { goal, context, attachments? }
+  → property_search  { query }
+  → car_search       { query }
+  → finance_analyze  { query }
+  → osint_search     { query }
+  → music_generate   { query }
+  → stop / ping / check / set_supervisor / clarify
+  ← ready, plan.created, task.*, supervisor.*, session.complete,
+    property.*, car.*, finance.*, osint.*, music.*, file.uploaded ...
 """
 
 from __future__ import annotations
@@ -135,6 +138,159 @@ async def workspace_upload(file: UploadFile = File(...), project: str = "uploads
     })
 
 
+@app.post("/upload/chat")
+async def chat_upload(file: UploadFile = File(...)):
+    """
+    Chat için dosya/fotoğraf yükle.
+    Desteklenen: resim (jpg/png/gif/webp), PDF, metin/kod dosyaları.
+
+    Returns:
+      {
+        "type": "image" | "text" | "pdf",
+        "name": str,
+        "content": str,       # text ve pdf için içerik
+        "path": str,          # resimler için kaydedilen yol
+        "description": str,   # resimler için vision modeli açıklaması
+        "size": int,
+      }
+    """
+    import aiofiles, base64, mimetypes
+
+    filename    = file.filename or "upload"
+    content     = await file.read()
+    size        = len(content)
+    mime        = file.content_type or mimetypes.guess_type(filename)[0] or ""
+    ext         = Path(filename).suffix.lower()
+
+    # ── Kaydetme yolu ────────────────────────────────────────────────────────
+    upload_dir = Path("workspace") / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    dest = upload_dir / filename
+    async with aiofiles.open(dest, "wb") as f:
+        await f.write(content)
+
+    # ── Resim ────────────────────────────────────────────────────────────────
+    if mime.startswith("image/") or ext in (".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"):
+        description = await _describe_image(dest, content)
+        return JSONResponse({
+            "type":        "image",
+            "name":        filename,
+            "path":        str(dest),
+            "description": description,
+            "content":     f"[Resim: {filename}]\n{description}",
+            "size":        size,
+        })
+
+    # ── PDF ──────────────────────────────────────────────────────────────────
+    if mime == "application/pdf" or ext == ".pdf":
+        text = await _extract_pdf_text(dest)
+        return JSONResponse({
+            "type":    "pdf",
+            "name":    filename,
+            "path":    str(dest),
+            "content": f"[PDF: {filename}]\n{text[:8000]}",
+            "size":    size,
+        })
+
+    # ── Metin / Kod ──────────────────────────────────────────────────────────
+    try:
+        text = content.decode("utf-8", errors="replace")
+    except Exception:
+        text = content.decode("latin-1", errors="replace")
+
+    return JSONResponse({
+        "type":    "text",
+        "name":    filename,
+        "path":    str(dest),
+        "content": f"[Dosya: {filename}]\n```\n{text[:12000]}\n```",
+        "size":    size,
+    })
+
+
+async def _describe_image(path: Path, content: bytes) -> str:
+    """Resmi vision modeli ile açıkla."""
+    # Önce Gemini dene (online), sonra Ollama gemma4:26b (offline)
+    try:
+        import base64
+        from config import GOOGLE_API_KEY, VISION_MODEL, OLLAMA_HOST
+        import mimetypes
+        mime = mimetypes.guess_type(str(path))[0] or "image/jpeg"
+
+        # Gemini ile dene (online)
+        if GOOGLE_API_KEY and GOOGLE_API_KEY != "your_google_api_key_here":
+            try:
+                from google import genai
+                from google.genai import types as gt
+                client = genai.Client(api_key=GOOGLE_API_KEY)
+                b64    = base64.b64encode(content).decode()
+                resp   = await client.aio.models.generate_content(
+                    model    = "gemini-2.0-flash",
+                    contents = [
+                        gt.Content(parts=[
+                            gt.Part(inline_data=gt.Blob(mime_type=mime, data=content)),
+                            gt.Part(text="Bu resmi Türkçe olarak detaylı açıkla. Ne görüyorsun?"),
+                        ], role="user")
+                    ],
+                )
+                return resp.text or "Resim açıklaması alınamadı."
+            except Exception:
+                pass
+
+        # Ollama gemma4:26b ile dene (offline multimodal)
+        try:
+            import ollama as _ollama
+            b64    = base64.b64encode(content).decode()
+            client = _ollama.AsyncClient(host=OLLAMA_HOST)
+            resp   = await client.chat(
+                model    = VISION_MODEL,
+                messages = [{
+                    "role":    "user",
+                    "content": "Bu resmi Türkçe olarak detaylı açıkla. Ne görüyorsun?",
+                    "images":  [b64],
+                }],
+            )
+            return resp.message.content or "Resim açıklaması alınamadı."
+        except Exception:
+            pass
+
+    except Exception:
+        pass
+
+    return f"[Resim yüklendi: {path.name}]"
+
+
+async def _extract_pdf_text(path: Path) -> str:
+    """PDF'ten metin çıkar."""
+    try:
+        import asyncio
+        loop = asyncio.get_event_loop()
+
+        def _read():
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(str(path))
+                pages  = []
+                for page in reader.pages[:20]:  # İlk 20 sayfa
+                    pages.append(page.extract_text() or "")
+                return "\n\n".join(pages)
+            except ImportError:
+                pass
+
+            try:
+                import fitz  # PyMuPDF
+                doc   = fitz.open(str(path))
+                pages = [page.get_text() for page in doc[:20]]
+                return "\n\n".join(pages)
+            except ImportError:
+                pass
+
+            return "[PDF okuma kütüphanesi kurulu değil: pip install pypdf]"
+
+        return await loop.run_in_executor(None, _read)
+    except Exception as e:
+        return f"[PDF okuma hatası: {e}]"
+
+
 @app.get("/settings/agents")
 async def get_agent_settings():
     """Mevcut ajan model ayarlarını döndür."""
@@ -197,8 +353,16 @@ async def ws_endpoint(websocket: WebSocket):
 
     from orchestrator import Orchestrator
     from agents.property_agent import PropertyAgent
+    from agents.car_agent      import CarAgent
+    from agents.osint_agent    import OsintAgent
+    from agents.finance_agent  import FinanceAgent
+    from agents.music_agent    import MusicAgent
     orch          = Orchestrator(emit=emit)
     property_agt  = PropertyAgent()
+    car_agt       = CarAgent()
+    osint_agt     = OsintAgent()
+    finance_agt   = FinanceAgent()
+    music_agt     = MusicAgent()
     orch.supervisor.refresh_llm()
 
     # İlk mesaj
@@ -251,7 +415,6 @@ async def ws_endpoint(websocket: WebSocket):
                     active_task = asyncio.create_task(_run_and_save_project(goal, context))
 
                 case "property_search":
-                    # { "type": "property_search", "query": "Kadıköy 2+1 kiralik 5000-8000" }
                     query = msg.get("query", "").strip()
                     if not query:
                         await websocket.send_json({"type": "error", "data": {"message": "Arama sorgusu boş."}})
@@ -262,14 +425,69 @@ async def ws_endpoint(websocket: WebSocket):
 
                     async def _run_property(q):
                         result = await property_agt.search(q, emit=emit)
-                        # property.done already emitted by agent — send result data separately
-                        await emit({
-                            "type": "property.results",
-                            "ts":   time.time(),
-                            "data": result,
-                        })
+                        await emit({"type": "property.results", "ts": time.time(), "data": result})
 
                     active_task = asyncio.create_task(_run_property(query))
+
+                case "car_search":
+                    query = msg.get("query", "").strip()
+                    if not query:
+                        await websocket.send_json({"type": "error", "data": {"message": "Araç sorgusu boş."}})
+                        continue
+                    if active_task and not active_task.done():
+                        await websocket.send_json({"type": "error", "data": {"message": "İşlem devam ediyor."}})
+                        continue
+
+                    async def _run_car(q):
+                        result = await car_agt.search(q, emit=emit)
+                        await emit({"type": "car.results", "ts": time.time(), "data": result})
+
+                    active_task = asyncio.create_task(_run_car(query))
+
+                case "finance_analyze":
+                    query = msg.get("query", "").strip()
+                    if not query:
+                        await websocket.send_json({"type": "error", "data": {"message": "Finans sorgusu boş."}})
+                        continue
+                    if active_task and not active_task.done():
+                        await websocket.send_json({"type": "error", "data": {"message": "İşlem devam ediyor."}})
+                        continue
+
+                    async def _run_finance(q):
+                        result = await finance_agt.analyze(q, emit=emit)
+                        await emit({"type": "finance.results", "ts": time.time(), "data": result})
+
+                    active_task = asyncio.create_task(_run_finance(query))
+
+                case "osint_search":
+                    query = msg.get("query", "").strip()
+                    if not query:
+                        await websocket.send_json({"type": "error", "data": {"message": "OSINT sorgusu boş."}})
+                        continue
+                    if active_task and not active_task.done():
+                        await websocket.send_json({"type": "error", "data": {"message": "İşlem devam ediyor."}})
+                        continue
+
+                    async def _run_osint(q):
+                        result = await osint_agt.search(q, emit=emit)
+                        await emit({"type": "osint.results", "ts": time.time(), "data": result})
+
+                    active_task = asyncio.create_task(_run_osint(query))
+
+                case "music_generate":
+                    query = msg.get("query", "").strip()
+                    if not query:
+                        await websocket.send_json({"type": "error", "data": {"message": "Müzik tanımı boş."}})
+                        continue
+                    if active_task and not active_task.done():
+                        await websocket.send_json({"type": "error", "data": {"message": "İşlem devam ediyor."}})
+                        continue
+
+                    async def _run_music(q):
+                        result = await music_agt.create(q, emit=emit)
+                        await emit({"type": "music.results", "ts": time.time(), "data": result})
+
+                    active_task = asyncio.create_task(_run_music(query))
 
                 case "message_mila":
                     # User sends a follow-up message to Mila at any time

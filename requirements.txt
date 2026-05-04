@@ -9,7 +9,15 @@ fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 websockets>=13.0
 chromadb>=0.5.0
-# Master-MCP integrations
+# Arama araçları
 duckduckgo-search>=6.0.0
 requests>=2.31.0
 python-multipart>=0.0.9
+curl_cffi>=0.7.0
+beautifulsoup4>=4.12.0
+# Yeni ajan araçları
+maigret>=0.6.0        # Sigma — OSINT
+yfinance>=1.0.0       # Nova — Finans
+pypdf>=3.0.0          # Multimodal PDF okuma
+Pillow>=10.0.0        # Resim işleme
+# ace-step             # Ziya — Müzik (büyük, isteğe bağlı: pip install ace-step)

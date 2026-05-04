@@ -108,6 +108,46 @@ MODELS: dict[str, dict] = {
         "description": "Hızlı, basit görevler",
         "persona":     "",
     },
+
+    # ── Turbo (Car Search) ───────────────────────────────────────────────────
+    "car": {
+        "provider":    "gemini",
+        "model":       "gemini-2.0-flash",
+        "temperature": 0.3,
+        "description": "Araç arama ve analizi",
+        "persona":     "Turbo",
+        "color":       "#f97316",  # turuncu
+    },
+
+    # ── Sigma (OSINT) ────────────────────────────────────────────────────────
+    "osint": {
+        "provider":    "gemini",
+        "model":       "gemini-2.0-flash",
+        "temperature": 0.2,
+        "description": "Dijital araştırma ve OSINT",
+        "persona":     "Sigma",
+        "color":       "#e879f9",  # pembe-mor
+    },
+
+    # ── Nova (Finance) ───────────────────────────────────────────────────────
+    "finance": {
+        "provider":    "gemini",
+        "model":       "gemini-2.0-flash",
+        "temperature": 0.3,
+        "description": "Finans analizi ve piyasa araştırması",
+        "persona":     "Nova",
+        "color":       "#4ade80",  # yeşil
+    },
+
+    # ── Ziya (Music) ─────────────────────────────────────────────────────────
+    "music": {
+        "provider":    "gemini",
+        "model":       "gemini-2.0-flash",
+        "temperature": 0.7,
+        "description": "Müzik üretimi (ACE-Step)",
+        "persona":     "Ziya",
+        "color":       "#f472b6",  # pembe
+    },
 }
 
 # ─── Sistem & Sunucu Ayarları ────────────────────────────────────────────────
@@ -115,5 +155,9 @@ WORKSPACE_DIR  = os.getenv("WORKSPACE_DIR", "workspace")
 CHROMA_PATH    = os.getenv("CHROMA_PATH",   "./chroma_db")
 WS_HOST        = os.getenv("WS_HOST",       "0.0.0.0")
 WS_PORT        = int(os.getenv("WS_PORT",   "8000"))
+
+# ─── Vision Modeli (Dosya/Fotoğraf Analizi) ──────────────────────────────────
+# gemma4:26b kurulu ve multimodal — görsel içerik analizi için
+VISION_MODEL   = os.getenv("VISION_MODEL", "gemma4:26b")
 MAX_CTX_CHARS  = 16_000   # gemma4:26b 128K ctx — safely use much more per agent
 MAX_PARALLEL   = 4
