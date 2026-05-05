@@ -1094,6 +1094,129 @@ input, textarea { font-family: var(--ui); color: var(--text); }
   font-size: 13.5px; color: var(--text-soft); line-height: 1.55;
   margin-bottom: 16px;
 }
+
+/* ════════════════════════════════════════════════════════
+   AUTO-ROUTE BANNER
+════════════════════════════════════════════════════════ */
+.route-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; margin-bottom: 8px;
+  border-radius: var(--r); font-size: 13px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-soft); animation: fadeIn .3s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+
+/* ════════════════════════════════════════════════════════
+   BROWSER MODE
+════════════════════════════════════════════════════════ */
+#browser-area { display: none; flex-direction: column; height: 100%; }
+#browser-area.active { display: flex; }
+
+.browser-layout {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Progress bar */
+.browser-progress {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px; background: var(--bg-card);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  font-size: 12.5px; color: var(--text-soft);
+}
+.browser-progress-bar {
+  flex: 1; height: 3px; background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+.browser-progress-fill {
+  height: 100%; background: #4f8ef7;
+  border-radius: 2px; transition: width .4s ease;
+}
+
+/* Screenshot area */
+.browser-screen-wrap {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.browser-screenshot-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+}
+.browser-screenshot-caption {
+  padding: 7px 12px; font-size: 12px; color: var(--text-dim);
+  background: var(--bg-s); border-bottom: 1px solid var(--border-dim);
+  display: flex; align-items: center; gap: 6px;
+}
+.browser-screenshot-img {
+  width: 100%; display: block; cursor: zoom-in;
+}
+.browser-screenshot-img:hover { opacity: .95; }
+
+/* Step log */
+.browser-steps {
+  width: 280px; flex-shrink: 0; border-left: 1px solid var(--border);
+  overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg-s);
+}
+.browser-step-item {
+  padding: 6px 10px; border-radius: var(--rs);
+  border: 1px solid var(--border-dim); font-size: 11.5px;
+  color: var(--text-dim); display: flex; align-items: flex-start; gap: 7px;
+}
+.browser-step-item.active { border-color: #4f8ef7; color: var(--text); background: rgba(79,142,247,.07); }
+.browser-step-item.done   { border-color: var(--ok);  color: var(--text-soft); }
+.browser-step-item.rejected { border-color: var(--err); color: var(--err); }
+
+/* Approval dialog */
+.browser-approval {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  background: var(--bg-card); border: 1px solid var(--warn);
+  border-radius: var(--rl); padding: 18px 22px; width: min(520px, 94vw);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5); z-index: 9999;
+  animation: fadeIn .2s ease;
+}
+.approval-title {
+  font-size: 14px; font-weight: 600; color: var(--warn);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+}
+.approval-desc {
+  font-size: 13px; color: var(--text-soft); line-height: 1.55;
+  margin-bottom: 14px;
+}
+.approval-btns { display: flex; gap: 10px; }
+.approval-btn-ok {
+  flex: 1; padding: 9px; border-radius: var(--r); font-size: 13px;
+  font-weight: 600; background: var(--ok); color: #000; cursor: pointer;
+  border: none; transition: .12s;
+}
+.approval-btn-ok:hover { background: #0ea06a; }
+.approval-btn-no {
+  flex: 1; padding: 9px; border-radius: var(--r); font-size: 13px;
+  font-weight: 600; background: var(--bg-hover); color: var(--err);
+  cursor: pointer; border: 1px solid var(--err); transition: .12s;
+}
+.approval-btn-no:hover { background: rgba(239,68,68,.1); }
+
+/* Browser welcome */
+.browser-welcome {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 40px 24px;
+}
+.browser-welcome-icon { font-size: 56px; margin-bottom: 16px; }
+.browser-welcome-title { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+.browser-welcome-sub {
+  font-size: 14px; color: var(--text-soft); max-width: 560px;
+  line-height: 1.65; margin-bottom: 28px;
+}
+.browser-suggestions { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 560px; }
+.browser-suggestion {
+  padding: 11px 18px; border-radius: var(--r);
+  border: 1px solid var(--border); background: var(--bg-card);
+  font-size: 13px; color: var(--text-soft); text-align: left;
+  cursor: pointer; transition: .12s;
+}
+.browser-suggestion:hover { border-color: #4f8ef7; color: var(--text); }
 </style>
 </head>
 <body>
@@ -1125,6 +1248,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
       <button class="mode-btn finance"     id="mode-finance" onclick="switchAppMode('finance')">📈 Finans</button>
       <button class="mode-btn osint"       id="mode-osint"   onclick="switchAppMode('osint')">🔍 OSINT</button>
       <button class="mode-btn music"       id="mode-music"   onclick="switchAppMode('music')">🎵 Müzik</button>
+      <button class="mode-btn browser"     id="mode-browser" onclick="switchAppMode('browser')" style="background:rgba(79,142,247,.1);border-color:rgba(79,142,247,.3);color:#4f8ef7">🌐 Atlas</button>
     </div>
   </div>
 
@@ -1203,6 +1327,48 @@ input, textarea { font-family: var(--ui); color: var(--text); }
         </div>
       </div>
     </div>
+
+    <!-- ── BROWSER AUTOMATION MODE ── -->
+    <div id="browser-area">
+      <div class="browser-layout">
+        <!-- Welcome screen -->
+        <div class="browser-welcome" id="browser-welcome">
+          <div class="browser-welcome-icon">🌐</div>
+          <div class="browser-welcome-title">Web Tarayıcı Ajanı — Atlas</div>
+          <div class="browser-welcome-sub">
+            Chrome tarayıcısını benim yerime kontrol edebilirim. Ürün araması, iş başvurusu, form doldurma ve web araştırmaları yapabilirim. Önemli işlemleri gerçekleştirmeden önce onayınızı alırım.
+          </div>
+          <div class="browser-suggestions">
+            <button class="browser-suggestion" onclick="fillAndSend('n11.com\\'dan bana mavi spor ayakkabı bul, en uygun fiyatlıları listele')">🛍️ n11.com'dan mavi spor ayakkabı bul, en uygun fiyatlıları listele</button>
+            <button class="browser-suggestion" onclick="fillAndSend('Trendyol\\'dan laptop soğutma pedi ara, 200 TL altı seçenekleri göster')">💻 Trendyol'dan laptop soğutma pedi ara, 200 TL altı seçenekleri göster</button>
+            <button class="browser-suggestion" onclick="fillAndSend('Google\\'da Python developer iş ilanlarını ara, İstanbul uzaktan çalışma')">💼 Google'da Python developer iş ilanlarını ara, İstanbul/uzaktan</button>
+            <button class="browser-suggestion" onclick="fillAndSend('Hava durumunu kontrol et, İstanbul için 5 günlük tahmin')">🌤️ İstanbul 5 günlük hava durumu tahminini bul</button>
+          </div>
+        </div>
+
+        <!-- Active browser view (shown when task running) -->
+        <div id="browser-content" style="display:none; flex:1; display:none; flex-direction:column; overflow:hidden;">
+          <!-- Progress bar -->
+          <div class="browser-progress" id="browser-progress">
+            <span id="browser-step-label" style="min-width:200px">Başlatılıyor...</span>
+            <div class="browser-progress-bar">
+              <div class="browser-progress-fill" id="browser-progress-fill" style="width:0%"></div>
+            </div>
+            <span id="browser-step-count" style="font-size:11px;color:var(--text-dim)">0/0</span>
+          </div>
+
+          <!-- Main area: screenshot + step log -->
+          <div style="display:flex;flex:1;overflow:hidden">
+            <!-- Screenshots -->
+            <div class="browser-screen-wrap" id="browser-screen-wrap"></div>
+            <!-- Step log -->
+            <div class="browser-steps" id="browser-steps"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Approval overlay (injected dynamically) -->
+    </div><!-- end browser-area -->
 
     <!-- ── DOMAIN MODES (Araç / Finans / OSINT / Müzik) ── -->
     <div id="domain-area">
@@ -1389,7 +1555,7 @@ const state = {
   running: false,
   clarifying: false,
   mode: 'idle',           // 'idle' | 'running' | 'completed'
-  appMode: 'code',        // 'code'|'property'|'car'|'finance'|'osint'|'music'
+  appMode: 'code',        // 'code'|'property'|'car'|'finance'|'osint'|'music'|'browser'
   activePanel: 'agents',
   sessionCount: 0,
   currentMsgId: null,
@@ -1400,8 +1566,9 @@ const state = {
   planTasks: [],
   wsRetries: 0,
   supInfo: {},
-  // Dosya yükleme
   attachments: [],        // [{name, type, content, icon}]
+  // Browser
+  browserApprovalPending: false,
 };
 
 const $ = id => document.getElementById(id);
@@ -1480,6 +1647,9 @@ function handleEvent(ev) {
     case 'clarification_received': onClarificationReceived(); break;
     case 'watchdog.timeout':   onWatchdogEvent(data, 'timeout'); break;
     case 'watchdog.repetition':onWatchdogEvent(data, 'repetition'); break;
+    // Auto-routing
+    case 'task.classified':     onTaskClassified(data); break;
+    // Property
     case 'property.status':    onPropertyStatus(data); break;
     case 'property.done':      onPropertyDone(data); break;
     case 'property.results':   onPropertyResults(data); break;
@@ -1499,6 +1669,13 @@ function handleEvent(ev) {
     case 'music.status':       onDomainStatus('music', data); break;
     case 'music.done':         onMusicDone(data); break;
     case 'music.results':      onMusicResults(data); break;
+    // Browser
+    case 'browser.status':     onBrowserStatus(data); break;
+    case 'browser.step':       onBrowserStep(data); break;
+    case 'browser.screenshot': onBrowserScreenshot(data); break;
+    case 'browser.approval_needed': onBrowserApproval(data); break;
+    case 'browser.done':       onBrowserDone(data); break;
+    case 'browser.error':      onBrowserError(data); break;
     case 'pong': break;
   }
 }
@@ -1840,13 +2017,14 @@ const MODE_CONFIG = {
   finance:  { placeholder: "Hisse/kripto/döviz sorgula: AAPL fiyatı, Bitcoin analizi...", hint: 'Enter ile sorgula · yfinance' },
   osint:    { placeholder: "Kullanıcı adı ara: @kullanici_adi veya 'doguayd kullanıcısını bul'...", hint: 'Enter ile ara · 3000+ site · maigret' },
   music:    { placeholder: "Müzik tanımla: 30 saniyelik melankolik piyano parçası...", hint: 'Enter ile üret · ACE-Step · lokal GPU' },
+  browser:  { placeholder: "Atlas'a web görevi ver: n11'den mavi ayakkabı bul, iş başvurusu yap...", hint: 'Enter ile başlat · Atlas · Playwright Chrome' },
 };
 
 function switchAppMode(mode) {
   state.appMode = mode;
 
   // Mode butonları
-  ['code','prop','car','finance','osint','music'].forEach(id => {
+  ['code','prop','car','finance','osint','music','browser'].forEach(id => {
     const el = $(
       id === 'code' ? 'mode-code' :
       id === 'prop' ? 'mode-prop' :
@@ -1864,22 +2042,31 @@ function switchAppMode(mode) {
   const hintTxt  = $('input-hint-text');
   const cfg      = MODE_CONFIG[mode] || MODE_CONFIG.code;
 
-  const domainArea = $('domain-area');
+  const domainArea  = $('domain-area');
+  const browserArea = $('browser-area');
   const domainModes = ['car', 'finance', 'osint', 'music'];
 
   if (mode === 'code') {
     chatArea.classList.remove('hidden');
     propArea.classList.remove('active');
     domainArea.classList.remove('active');
+    if (browserArea) browserArea.classList.remove('active');
   } else if (mode === 'property') {
     chatArea.classList.add('hidden');
     propArea.classList.add('active');
     domainArea.classList.remove('active');
+    if (browserArea) browserArea.classList.remove('active');
     if (!$('prop-grid').children.length && !state.running) showPropWelcome();
+  } else if (mode === 'browser') {
+    chatArea.classList.add('hidden');
+    propArea.classList.remove('active');
+    domainArea.classList.remove('active');
+    if (browserArea) browserArea.classList.add('active');
   } else if (domainModes.includes(mode)) {
     chatArea.classList.add('hidden');
     propArea.classList.remove('active');
     domainArea.classList.add('active');
+    if (browserArea) browserArea.classList.remove('active');
     // Show correct welcome screen
     domainModes.forEach(m => {
       const w = $('domain-welcome-' + m);
@@ -2044,7 +2231,7 @@ const HISTORY_KEY = 'mila_history_v2';
 
 const MODE_ICONS = {
   code: '💻', property: '🏠', car: '🚗',
-  finance: '📈', osint: '🔍', music: '🎵',
+  finance: '📈', osint: '🔍', music: '🎵', browser: '🌐',
 };
 
 function saveHistoryItem(mode, firstMsg) {
@@ -2179,6 +2366,9 @@ function handleSend() {
   if (state.appMode === 'music') {
     sendMusicGenerate(val); return;
   }
+  if (state.appMode === 'browser') {
+    sendBrowserTask(val); return;
+  }
 
   // Kod modu — ekleri context'e dahil et
   let goal    = val;
@@ -2289,12 +2479,33 @@ function sendMusicGenerate(query) {
   send({ type: 'music_generate', query });
 }
 
+function sendBrowserTask(query) {
+  if (!query) return;
+  state.running = true;
+  updateSendBtn();
+  saveHistoryItem('browser', query);
+  // Show active browser area
+  $('browser-welcome').style.display = 'none';
+  const bc = $('browser-content');
+  if (bc) { bc.style.display = 'flex'; bc.style.flexDirection = 'column'; bc.style.flex = '1'; bc.style.overflow = 'hidden'; }
+  $('browser-steps').innerHTML = '';
+  $('browser-screen-wrap').innerHTML = '';
+  $('browser-progress-fill').style.width = '0%';
+  $('browser-step-label').textContent = 'Başlatılıyor...';
+  // Send as regular "run" — auto-router will classify as browser
+  send({ type: 'run', goal: query, context: '' });
+}
+
 function stopTask() {
   send({ type: 'stop' });
+  // Remove any pending approval box
+  const box = $('browser-approval-box');
+  if (box) box.remove();
+  state.browserApprovalPending = false;
 }
 
 function onInputKey(e) {
-  const domainModes = ['property','car','finance','osint','music'];
+  const domainModes = ['property','car','finance','osint','music','browser'];
   const isDomain = domainModes.includes(state.appMode);
   // Domain modlarda düz Enter yeterli; kod modunda Ctrl+Enter gerekli
   if (e.key === 'Enter' && (isDomain ? !e.shiftKey : (e.ctrlKey || e.metaKey))) {
@@ -3060,6 +3271,191 @@ function onMusicDone(data) {
 }
 
 function onMusicResults(data) { /* handled in onMusicDone */ }
+
+/* ═══════════════════════════════════════════════════════
+   AUTO-ROUTING
+═══════════════════════════════════════════════════════ */
+const CAT_META = {
+  code:     { icon:'💻', label:'Kod modu',     color:'var(--mila)'  },
+  property: { icon:'🏠', label:'Emlak araması', color:'var(--lara)'  },
+  car:      { icon:'🚗', label:'Araç araması',  color:'var(--turbo)' },
+  finance:  { icon:'📈', label:'Piyasa analizi',color:'var(--nova)'  },
+  osint:    { icon:'🔍', label:'OSINT araması', color:'var(--sigma)' },
+  music:    { icon:'🎵', label:'Müzik üretimi', color:'var(--ziya)'  },
+  browser:  { icon:'🌐', label:'Web tarayıcı',  color:'#4f8ef7'      },
+};
+
+function onTaskClassified(data) {
+  const cat  = data.category || 'code';
+  const meta = CAT_META[cat] || CAT_META.code;
+  state.running = true;
+  updateSendBtn();
+
+  // Show route banner in messages inner (code area) if visible
+  const inner = $('messages-inner');
+  if (inner) {
+    hideWelcome();
+    const banner = document.createElement('div');
+    banner.className = 'route-banner';
+    banner.id = 'route-banner';
+    banner.innerHTML = `<span style="font-size:16px">${meta.icon}</span>
+      <span style="color:${meta.color};font-weight:500">${meta.label}</span>
+      <span style="color:var(--text-dim)">olarak yönlendiriliyor...</span>`;
+    inner.appendChild(banner);
+    scrollBottom();
+  }
+
+  // Auto-switch UI to appropriate mode
+  if (cat === 'browser') {
+    switchAppMode('browser');
+    // Show active content area, hide welcome
+    $('browser-welcome').style.display = 'none';
+    const bc = $('browser-content');
+    if (bc) { bc.style.display = 'flex'; bc.style.flexDirection = 'column'; bc.style.flex = '1'; bc.style.overflow = 'hidden'; }
+    $('browser-steps').innerHTML = '';
+    $('browser-screen-wrap').innerHTML = '';
+    $('browser-progress-fill').style.width = '0%';
+    $('browser-step-label').textContent = 'Başlatılıyor...';
+    $('browser-step-count').textContent = '0/0';
+    saveHistoryItem('browser', data.goal || '');
+  } else if (cat === 'property') {
+    switchAppMode('property');
+    saveHistoryItem('property', data.goal || '');
+  } else if (['car','finance','osint','music'].includes(cat)) {
+    switchAppMode(cat);
+    showDomainContent(cat, `${meta.icon} ${meta.label} için işleniyor...`);
+    saveHistoryItem(cat, data.goal || '');
+  } else {
+    // Code: stay in code mode, create Mila message
+    if (state.appMode !== 'code') switchAppMode('code');
+    createMilaMsg();
+    saveHistoryItem('code', data.goal || '');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   BROWSER AGENT EVENTS
+═══════════════════════════════════════════════════════ */
+let _browserStepCount = 0;
+let _browserStepTotal = 0;
+
+function onBrowserStatus(data) {
+  $('browser-step-label').textContent = data.message || '';
+}
+
+function onBrowserStep(data) {
+  _browserStepTotal = data.total || 0;
+  _browserStepCount = data.index || 0;
+  const pct = _browserStepTotal > 0 ? Math.round((_browserStepCount / _browserStepTotal) * 100) : 0;
+  $('browser-progress-fill').style.width = pct + '%';
+  $('browser-step-label').textContent = data.description || '';
+  $('browser-step-count').textContent = `${_browserStepCount + 1}/${_browserStepTotal}`;
+
+  // Add to step log
+  const log = $('browser-steps');
+  const item = document.createElement('div');
+  item.className = 'browser-step-item active';
+  item.id = 'bstep-' + _browserStepCount;
+  const actionIcons = {
+    navigate:'🌐', click:'👆', type:'⌨️', search:'🔍',
+    scroll:'📜', extract:'📋', screenshot:'📸', wait:'⏳', done:'✅',
+  };
+  item.innerHTML = `<span>${actionIcons[data.action] || '▸'}</span>
+    <span style="flex:1">${escHtml(data.description || '')}</span>
+    ${data.needs_approval ? '<span title="Onay gerekli">⚠️</span>' : ''}`;
+  log.appendChild(item);
+  item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Mark previous as done
+  if (_browserStepCount > 0) {
+    const prev = $('bstep-' + (_browserStepCount - 1));
+    if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
+  }
+}
+
+function onBrowserScreenshot(data) {
+  if (!data.image) return;
+  const wrap = $('browser-screen-wrap');
+  if (!wrap) return;
+  const card = document.createElement('div');
+  card.className = 'browser-screenshot-card';
+  card.innerHTML = `
+    <div class="browser-screenshot-caption">
+      <span>📸</span>
+      <span>${escHtml(data.caption || '')}</span>
+      ${data.final ? '<span style="color:var(--ok);margin-left:auto">✅ Tamamlandı</span>' : ''}
+    </div>
+    <img class="browser-screenshot-img" src="data:image/png;base64,${data.image}"
+      alt="screenshot" onclick="openScreenshotModal(this.src)">`;
+  wrap.appendChild(card);
+  card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function onBrowserApproval(data) {
+  state.browserApprovalPending = true;
+  // Remove existing if any
+  const existing = $('browser-approval-box');
+  if (existing) existing.remove();
+
+  const box = document.createElement('div');
+  box.className = 'browser-approval';
+  box.id = 'browser-approval-box';
+  box.innerHTML = `
+    <div class="approval-title">⚠️ Onay Gerekiyor</div>
+    <div class="approval-desc">${escHtml(data.action || '')}</div>
+    <div class="approval-btns">
+      <button class="approval-btn-ok" onclick="browserApprove(true)">✅ Evet, devam et</button>
+      <button class="approval-btn-no" onclick="browserApprove(false)">⛔ Hayır, iptal et</button>
+    </div>`;
+  document.body.appendChild(box);
+}
+
+function browserApprove(approved) {
+  const box = $('browser-approval-box');
+  if (box) box.remove();
+  state.browserApprovalPending = false;
+  send({ type: 'browser_approve', approved });
+}
+
+function onBrowserDone(data) {
+  state.running = false;
+  updateSendBtn();
+  $('browser-progress-fill').style.width = '100%';
+  $('browser-step-label').textContent = '✅ ' + (data.summary || 'Görev tamamlandı');
+
+  // Mark last step done
+  const last = $('bstep-' + (_browserStepCount));
+  if (last) { last.classList.remove('active'); last.classList.add('done'); }
+
+  // Show summary card in screenshot area
+  const wrap = $('browser-screen-wrap');
+  if (wrap && data.summary) {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:var(--r);padding:16px 20px;font-size:14px;line-height:1.6;color:var(--text-soft)';
+    card.innerHTML = `<div style="color:var(--ok);font-weight:600;margin-bottom:8px">✅ Görev Tamamlandı</div>
+      <div>${escHtml(data.summary)}</div>`;
+    wrap.appendChild(card);
+    card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+}
+
+function onBrowserError(data) {
+  state.running = false;
+  updateSendBtn();
+  $('browser-step-label').textContent = '❌ Hata: ' + (data.message || '');
+}
+
+function openScreenshotModal(src) {
+  openModal(`<div class="modal modal-lg" style="max-width:1100px">
+    <div class="modal-header">
+      <span>🖥️ Ekran Görüntüsü</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <img src="${src}" style="width:100%;display:block;border-radius:0 0 var(--r) var(--r)">
+    </div>
+  </div>`);
+}
 
 /* ═══════════════════════════════════════════════════════
    DOSYA YÜKLEME (MULTIMODAL)

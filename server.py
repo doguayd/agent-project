@@ -357,13 +357,19 @@ async def ws_endpoint(websocket: WebSocket):
     from agents.osint_agent    import OsintAgent
     from agents.finance_agent  import FinanceAgent
     from agents.music_agent    import MusicAgent
+    from agents.browser_agent  import BrowserAgent
     orch          = Orchestrator(emit=emit)
     property_agt  = PropertyAgent()
     car_agt       = CarAgent()
     osint_agt     = OsintAgent()
     finance_agt   = FinanceAgent()
     music_agt     = MusicAgent()
+    browser_agt   = BrowserAgent()
     orch.supervisor.refresh_llm()
+    browser_agt.refresh_llm()
+
+    # Browser onay bekleyicisi
+    _browser_approval_future: dict = {"fut": None}
 
     # İlk mesaj
     await websocket.send_json({
@@ -397,6 +403,7 @@ async def ws_endpoint(websocket: WebSocket):
             match msg.get("type"):
 
                 case "run":
+                    # Eski format — auto_task'a yönlendir
                     goal    = msg.get("goal", "").strip()
                     context = msg.get("context", "").strip()
                     if not goal:
@@ -407,12 +414,47 @@ async def ws_endpoint(websocket: WebSocket):
                         continue
                     _last_session["goal"]    = goal
                     _last_session["context"] = context
-                    # project slug will be set by orchestrator — capture it after run
-                    async def _run_and_save_project(g, c):
-                        result = await orch.run(g, c)
-                        _last_session["project"] = orch._project
-                        return result
-                    active_task = asyncio.create_task(_run_and_save_project(goal, context))
+
+                    async def _auto_run(g: str, c: str):
+                        """Görevi otomatik sınıflandır ve doğru ajana yönlendir."""
+                        cat = await orch.supervisor.classify_task(g)
+                        logger.info(f"Auto-route: '{g[:60]}' → {cat}")
+                        await emit({"type": "task.classified", "ts": time.time(),
+                                    "data": {"category": cat, "goal": g}})
+
+                        if cat == "property":
+                            r = await property_agt.search(g, emit=emit)
+                            await emit({"type": "property.results", "ts": time.time(), "data": r})
+                        elif cat == "car":
+                            r = await car_agt.search(g, emit=emit)
+                            await emit({"type": "car.results", "ts": time.time(), "data": r})
+                        elif cat == "finance":
+                            r = await finance_agt.analyze(g, emit=emit)
+                            await emit({"type": "finance.results", "ts": time.time(), "data": r})
+                        elif cat == "osint":
+                            r = await osint_agt.search(g, emit=emit)
+                            await emit({"type": "osint.results", "ts": time.time(), "data": r})
+                        elif cat == "music":
+                            r = await music_agt.create(g, emit=emit)
+                            await emit({"type": "music.results", "ts": time.time(), "data": r})
+                        elif cat == "browser":
+                            async def _approval(action_desc: str, screenshot_b64: str) -> bool:
+                                fut = asyncio.get_event_loop().create_future()
+                                _browser_approval_future["fut"] = fut
+                                await emit({"type": "browser.approval_needed", "ts": time.time(),
+                                            "data": {"action": action_desc, "screenshot": screenshot_b64}})
+                                try:
+                                    return await asyncio.wait_for(fut, timeout=120)
+                                except asyncio.TimeoutError:
+                                    return False
+                            await browser_agt.run(g, emit=emit, approval_callback=_approval, context=c)
+                        else:
+                            # code mode
+                            result = await orch.run(g, c)
+                            _last_session["project"] = orch._project
+                            return result
+
+                    active_task = asyncio.create_task(_auto_run(goal, context))
 
                 case "property_search":
                     query = msg.get("query", "").strip()
@@ -529,7 +571,39 @@ async def ws_endpoint(websocket: WebSocket):
                         "ts":   time.time(),
                         "data": {"message": message},
                     })
-                    active_task = asyncio.create_task(orch.run(message, combined_ctx))
+                    # Auto-route follow-up messages too
+                    async def _followup_run(g: str, c: str):
+                        cat = await orch.supervisor.classify_task(g)
+                        await emit({"type": "task.classified", "ts": time.time(),
+                                    "data": {"category": cat, "goal": g}})
+                        if cat == "browser":
+                            async def _approval2(action_desc, ss):
+                                fut2 = asyncio.get_event_loop().create_future()
+                                _browser_approval_future["fut"] = fut2
+                                await emit({"type": "browser.approval_needed", "ts": time.time(),
+                                            "data": {"action": action_desc, "screenshot": ss}})
+                                try:
+                                    return await asyncio.wait_for(fut2, timeout=120)
+                                except asyncio.TimeoutError:
+                                    return False
+                            await browser_agt.run(g, emit=emit, approval_callback=_approval2, context=c)
+                        elif cat in ("property", "car", "finance", "osint", "music"):
+                            # Route to domain agent
+                            _agents = {
+                                "property": property_agt.search,
+                                "car":      car_agt.search,
+                                "finance":  finance_agt.analyze,
+                                "osint":    osint_agt.search,
+                                "music":    music_agt.create,
+                            }
+                            fn = _agents[cat]
+                            r  = await fn(g, emit=emit)
+                            await emit({"type": f"{cat}.results", "ts": time.time(), "data": r})
+                        else:
+                            result = await orch.run(g, c)
+                            _last_session["project"] = orch._project
+                            return result
+                    active_task = asyncio.create_task(_followup_run(message, combined_ctx))
 
                 case "stop":
                     if active_task and not active_task.done():
@@ -586,6 +660,13 @@ async def ws_endpoint(websocket: WebSocket):
                         "ts":   time.time(),
                         "data": {"agent": agent_name, "provider": prov, "model": model, "temperature": temp},
                     })
+
+                case "browser_approve":
+                    # { "type": "browser_approve", "approved": true/false }
+                    fut = _browser_approval_future.get("fut")
+                    if fut and not fut.done():
+                        fut.set_result(bool(msg.get("approved", False)))
+                    _browser_approval_future["fut"] = None
 
                 case "clarify":
                     # { "type": "clarify", "answers": ["cevap1", "cevap2", ...] }

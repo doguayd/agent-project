@@ -444,6 +444,112 @@ Tasks in the same parallel_group with no shared dependencies run CONCURRENTLY.""
 
         return plan
 
+    # ── Auto-routing classifier ──────────────────────────────────────────────
+
+    async def classify_task(self, goal: str) -> str:
+        """
+        Görevi hızlıca sınıflandır:
+        Returns: 'code' | 'property' | 'car' | 'finance' | 'osint' | 'music' | 'browser'
+
+        Önce kural tabanlı hızlı kontrol, sonra LLM.
+        """
+        lower = goal.lower()
+
+        # ── Hızlı kural tabanlı sınıflandırma ───────────────────────────────
+        # Browser: web automation görevleri
+        _browser_kw = [
+            "aç", "git", "bul ve tıkla", "chrome", "tarayıcı", "siteye git",
+            "web'de", "internette", "web'den", "sitesinde", "n11", "hepsiburada",
+            "trendyol", "amazon", "sahibinden", "başvur", "iş başvuru",
+            "formu doldur", "kayıt ol", "satın al", "sipariş ver",
+            "rezervasyon", "bilet", "uçak", "otel book", "booking",
+            "linkini aç", "url'e git", "web sitesini",
+            "browse", "open chrome", "navigate", "click on", "fill form",
+        ]
+        _browser_strong = [
+            "benim için", "bana", "yerime", "n11'den", "trendyol'dan",
+            "hepsiburada'dan", "amazonda", "siteden bul", "sayfasına git",
+        ]
+        # Browser eğer hem bir eylem hem bir web hedefi varsa
+        if any(k in lower for k in _browser_strong) and any(
+            k in lower for k in ["bul", "ara", "aç", "git", "başvur", "al", "satın", "izle"]
+        ):
+            return "browser"
+        if any(k in lower for k in _browser_kw):
+            return "browser"
+
+        # Emlak
+        _prop_kw = ["daire", "kiralık", "satılık", "emlak", "konut", "ilan",
+                    "m2", "metro", "apartment", "flat", "property", "rent", "estate"]
+        if any(k in lower for k in _prop_kw):
+            return "property"
+
+        # Araç
+        _car_kw = ["araç", "araba", "otomobil", "km", "dizel", "benzin",
+                   "hibrit", "motor", "sedan", "suv", "binek", "ikinci el",
+                   "car", "vehicle", "bmw", "mercedes", "toyota", "honda", "ford",
+                   "volkswagen", "renault", "hyundai", "audi"]
+        if any(k in lower for k in _car_kw):
+            return "car"
+
+        # Finans
+        _fin_kw = ["hisse", "borsa", "kripto", "bitcoin", "ethereum", "dolar",
+                   "euro", "döviz", "fiyat", "piyasa", "altın", "faiz",
+                   "stock", "crypto", "finance", "market", "usd", "eur",
+                   "nasdaq", "bist", "aapl", "tsla", "nvda", "garan", "thyao"]
+        if any(k in lower for k in _fin_kw):
+            return "finance"
+
+        # OSINT
+        _osint_kw = ["kullanıcı adı", "username", "osint", "profil ara",
+                     "sosyal medya bul", "instagram hesap", "twitter hesap",
+                     "maigret", "person search", "find profile"]
+        if any(k in lower for k in _osint_kw):
+            return "osint"
+
+        # Müzik
+        _music_kw = ["müzik", "şarkı", "melodl", "piyano", "gitar", "beat",
+                     "enstrüman", "ambient", "tempo", "music", "song", "melody",
+                     "ace-step", "üret", "compose"]
+        if any(k in lower for k in _music_kw) and any(
+            k in lower for k in ["üret", "yap", "oluştur", "compose", "create", "generate"]
+        ):
+            return "music"
+
+        # Kod (default)
+        _code_kw = ["yaz", "kod", "uygulama", "script", "api", "web site",
+                    "python", "javascript", "html", "css", "flask", "django",
+                    "react", "database", "sql", "function", "class", "implement",
+                    "build", "create", "develop", "write", "program"]
+        if any(k in lower for k in _code_kw):
+            return "code"
+
+        # Belirsiz → LLM'e sor (hızlı)
+        prompt = f"""Classify this task into ONE category (reply with ONLY the category name):
+
+Task: {goal}
+
+Categories:
+- code: programming, coding, writing software, creating apps/scripts/APIs
+- property: real estate, apartment search, rent/buy house
+- car: used car search, vehicle lookup
+- finance: stocks, crypto, currency prices, market data
+- osint: username search, person search across social media
+- music: music generation, composing
+- browser: anything requiring web browsing, visiting websites, clicking, filling forms, shopping, job applications
+
+Reply with ONLY one word: code, property, car, finance, osint, music, or browser"""
+
+        try:
+            raw = await self.llm.generate([{"role": "user", "content": prompt}])
+            raw = _strip_think_blocks(raw).strip().lower().split()[0]
+            if raw in {"code", "property", "car", "finance", "osint", "music", "browser"}:
+                return raw
+        except Exception:
+            pass
+
+        return "code"  # default fallback
+
     def _fallback(self, goal: str) -> ExecutionPlan:
         tasks = [
             Task(id="t_res",  type=AgentType.RESEARCHER,
