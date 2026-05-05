@@ -21,3 +21,5 @@ yfinance>=1.0.0       # Nova — Finans
 pypdf>=3.0.0          # Multimodal PDF okuma
 Pillow>=10.0.0        # Resim işleme
 # ace-step             # Ziya — Müzik (büyük, isteğe bağlı: pip install ace-step)
+playwright>=1.44.0    # Atlas — Web tarayıcı otomasyonu (pip install playwright && playwright install chromium)
+playwright-stealth>=1.0.0  # Bot tespitini azalt

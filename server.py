@@ -352,21 +352,33 @@ async def ws_endpoint(websocket: WebSocket):
     active_task: asyncio.Task | None = None
 
     from orchestrator import Orchestrator
-    from agents.property_agent import PropertyAgent
-    from agents.car_agent      import CarAgent
-    from agents.osint_agent    import OsintAgent
-    from agents.finance_agent  import FinanceAgent
-    from agents.music_agent    import MusicAgent
-    from agents.browser_agent  import BrowserAgent
+    from agents.property_agent   import PropertyAgent
+    from agents.car_agent        import CarAgent
+    from agents.osint_agent      import OsintAgent
+    from agents.finance_agent    import FinanceAgent
+    from agents.music_agent      import MusicAgent
+    from agents.browser_agent    import BrowserAgent
+    from agents.browser_ext_agent import BrowserExtAgent, extension_connected
     orch          = Orchestrator(emit=emit)
     property_agt  = PropertyAgent()
     car_agt       = CarAgent()
     osint_agt     = OsintAgent()
     finance_agt   = FinanceAgent()
     music_agt     = MusicAgent()
-    browser_agt   = BrowserAgent()
+    browser_agt   = BrowserAgent()       # Playwright fallback
+    browser_ext   = BrowserExtAgent()    # Chrome extension (öncelikli)
     orch.supervisor.refresh_llm()
     browser_agt.refresh_llm()
+    browser_ext.refresh_llm()
+
+    def _get_browser_agent():
+        """Extension bağlıysa onu kullan, yoksa Playwright."""
+        if extension_connected():
+            logger.info("🌐 Atlas: Chrome extension modu aktif")
+            return browser_ext
+        else:
+            logger.info("🌐 Atlas: Playwright modu (extension bağlı değil)")
+            return browser_agt
 
     # Browser onay bekleyicisi
     _browser_approval_future: dict = {"fut": None}
@@ -447,7 +459,8 @@ async def ws_endpoint(websocket: WebSocket):
                                     return await asyncio.wait_for(fut, timeout=120)
                                 except asyncio.TimeoutError:
                                     return False
-                            await browser_agt.run(g, emit=emit, approval_callback=_approval, context=c)
+                            agt = _get_browser_agent()
+                            await agt.run(g, emit=emit, approval_callback=_approval, context=c)
                         else:
                             # code mode
                             result = await orch.run(g, c)
@@ -586,7 +599,8 @@ async def ws_endpoint(websocket: WebSocket):
                                     return await asyncio.wait_for(fut2, timeout=120)
                                 except asyncio.TimeoutError:
                                     return False
-                            await browser_agt.run(g, emit=emit, approval_callback=_approval2, context=c)
+                            agt2 = _get_browser_agent()
+                            await agt2.run(g, emit=emit, approval_callback=_approval2, context=c)
                         elif cat in ("property", "car", "finance", "osint", "music"):
                             # Route to domain agent
                             _agents = {
@@ -703,6 +717,71 @@ async def ws_endpoint(websocket: WebSocket):
         drain_task.cancel()
         if active_task and not active_task.done():
             active_task.cancel()
+
+
+# ─── Atlas Extension WebSocket ───────────────────────────────────────────────
+
+@app.websocket("/ws/atlas-ext")
+async def atlas_ext_endpoint(websocket: WebSocket):
+    """
+    Chrome eklentisi bu endpoint'e bağlanır.
+    Komutlar server → extension → Chrome yönünde akar.
+    Sonuçlar extension → server yönünde geri döner.
+    """
+    from agents.browser_ext_agent import (
+        set_extension_ws, clear_extension_ws, resolve_command
+    )
+
+    await websocket.accept()
+    set_extension_ws(websocket)
+    logger.info("🌐 Atlas Chrome eklentisi bağlandı.")
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+
+            msg_type = msg.get("type", "")
+            cmd_id   = msg.get("id")
+
+            # Extension'dan gelen sonuçlar
+            if msg_type == "ext.result" and cmd_id:
+                resolve_command(cmd_id, msg)
+
+            # Extension'dan gelen hatalar
+            elif msg_type == "ext.error" and cmd_id:
+                resolve_command(cmd_id, {"error": msg.get("error", "Bilinmeyen hata")})
+
+            # Extension bağlandı bildirimi
+            elif msg_type == "ext.connected":
+                logger.info(f"Atlas extension version: {msg.get('version', '?')}")
+
+            # Extension durum sorgusu (popup'tan)
+            elif msg_type == "get.status":
+                await websocket.send_text(json.dumps({"connected": True}))
+
+    except WebSocketDisconnect:
+        logger.info("Atlas Chrome eklentisi bağlantısı kesildi.")
+    except Exception as e:
+        logger.error(f"Atlas extension WS hatası: {e}")
+    finally:
+        clear_extension_ws()
+
+
+# Extension kullanılan browser_agt'yi de extension moduna geçir
+@app.websocket("/ws/atlas-ext-status")
+async def atlas_ext_status(websocket: WebSocket):
+    """UI'ın extension bağlantı durumunu sorgulaması için."""
+    from agents.browser_ext_agent import extension_connected
+    await websocket.accept()
+    try:
+        await websocket.send_json({"connected": extension_connected()})
+        await websocket.close()
+    except Exception:
+        pass
 
 
 # ─── CLI ─────────────────────────────────────────────────────────────────────
