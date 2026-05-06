@@ -458,7 +458,8 @@ Return ONLY a valid JSON array. No markdown, no explanation."""
 
             try:
                 res, mouse = await self._exec_step(
-                    action, target, value, selector, step, tab_id, mouse
+                    action, target, value, selector, step,
+                    tab_id, mouse, task, emit, approval_callback
                 )
                 steps_done.append({"desc": desc, "status": "ok", "result": res})
                 if action == "done":
@@ -480,10 +481,100 @@ Return ONLY a valid JSON array. No markdown, no explanation."""
 
         return summary or f"{task} tamamlandı.", steps_done
 
+    # ── CAPTCHA algılama ───────────────────────────────────────────────────────
+
+    async def _check_captcha(
+        self,
+        tab_id: int,
+        emit: Emitter,
+        approval_callback: Callable,
+    ) -> bool:
+        """
+        Sayfada CAPTCHA / bot koruması olup olmadığını kontrol et.
+        Varsa kullanıcıya bildir, çözülmesini bekle.
+        Döner: True = CAPTCHA yoktu veya kullanıcı çözdü, False = kullanıcı geçti.
+        """
+        _CAPTCHA_SIGNALS = [
+            # İngilizce
+            "captcha", "recaptcha", "hcaptcha", "are you a robot",
+            "i'm not a robot", "verify you are human", "human verification",
+            "access denied", "checking your browser", "one more step",
+            "please complete the security check", "ddos-guard",
+            # Türkçe
+            "robot değilim", "güvenlik doğrulaması", "lütfen doğrulayın",
+            "erişim engellendi", "bot koruması",
+            # Cloudflare / DataDome
+            "cloudflare", "datadome", "challenge", "just a moment",
+            "attention required", "site is protected",
+        ]
+
+        try:
+            resp  = await send_command("get_text", {"tabId": tab_id}, timeout=10)
+            text  = (resp.get("text", "") or "").lower()
+            title = (resp.get("title", "") or "").lower()
+        except Exception:
+            return True  # Metin alınamadıysa CAPTCHA yok say
+
+        combined = text[:3000] + " " + title
+        detected = [s for s in _CAPTCHA_SIGNALS if s in combined]
+
+        if not detected:
+            return True  # Temiz sayfa
+
+        # Screenshot al (kullanıcıya göster)
+        ss_b64 = None
+        try:
+            ss = await send_command("screenshot", {"tabId": tab_id}, timeout=10)
+            ss_b64 = ss.get("image")
+        except Exception:
+            pass
+
+        # UI'ya bildir
+        await emit(wrap("browser.captcha_needed", {
+            "message": (
+                "🔒 CAPTCHA / bot koruması tespit edildi!\n"
+                "Lütfen Atlas'ın Chrome penceresine geçerek doğrulamayı tamamlayın, "
+                "ardından 'Evet, tamamladım' yazın."
+            ),
+            "detected": detected[:5],
+            "image": ss_b64 or "",
+        }))
+
+        if ss_b64:
+            await emit(wrap("browser.screenshot", {
+                "image": ss_b64,
+                "caption": "🔒 CAPTCHA sayfası — lütfen manuel olarak çözün",
+            }))
+
+        # Kullanıcının onayını bekle (approval_callback "Evet" dönene kadar blokla)
+        try:
+            approved = await asyncio.wait_for(
+                approval_callback(
+                    "CAPTCHA tespit edildi. Atlas'ın Chrome penceresinde doğrulamayı tamamlayıp "
+                    "'Evet, tamamladım' yazın.",
+                    ss_b64 or "",
+                ),
+                timeout=300.0,   # 5 dakika
+            )
+        except asyncio.TimeoutError:
+            await emit(wrap("browser.status", {
+                "message": "⏰ CAPTCHA bekleme süresi doldu, devam ediliyor..."
+            }))
+            return False
+
+        if approved:
+            await emit(wrap("browser.status", {"message": "✅ CAPTCHA çözüldü, devam ediliyor..."}))
+            await asyncio.sleep(1.5)  # Yönlendirmeyi bekle
+        else:
+            await emit(wrap("browser.status", {"message": "⛔ CAPTCHA geçilemedi, adım atlanıyor..."}))
+
+        return approved
+
     async def _exec_step(
         self,
         action: str, target: str, value: str, selector: str,
-        step: dict, tab_id: int, mouse: dict
+        step: dict, tab_id: int, mouse: dict,
+        task: str = "", emit: Emitter = None, approval_callback: Callable = None,
     ) -> tuple[str, dict]:
         """Tek adımı çalıştır, yeni fare konumunu döndür."""
 
@@ -492,6 +583,9 @@ Return ONLY a valid JSON array. No markdown, no explanation."""
             url = target if target.startswith("http") else f"https://{target}"
             await send_command("navigate", {"tabId": tab_id, "url": url}, timeout=30)
             await asyncio.sleep(2.5)
+            # CAPTCHA kontrolü
+            if emit and approval_callback:
+                await self._check_captcha(tab_id, emit, approval_callback)
             return f"Gidildi: {url}", mouse
 
         # ── nav_discover: sayfanın tüm nav linklerini oku ──
@@ -519,7 +613,7 @@ Return ONLY a valid JSON array. No markdown, no explanation."""
             nav_text = resp.get("result", "Navigasyon okunamadı")
             # LLM'e sor: hangi kategori URL'si göreve uygun?
             pick_prompt = (
-                f"Görev: {step.get('_task', task)}\n\n"
+                f"Görev: {step.get('_task', task) or step.get('description', '')}\n\n"
                 f"Sitede bulunan navigasyon linkleri:\n{nav_text}\n\n"
                 f"Göreve en uygun kategori linkini seç ve sadece tam URL'yi yaz (başka hiçbir şey yazma)."
             )
@@ -532,6 +626,8 @@ Return ONLY a valid JSON array. No markdown, no explanation."""
                 chosen_url = url_match.group()
                 await send_command("navigate", {"tabId": tab_id, "url": chosen_url}, timeout=30)
                 await asyncio.sleep(2.5)
+                if emit and approval_callback:
+                    await self._check_captcha(tab_id, emit, approval_callback)
                 return f"Kategori bulundu ve gidildi: {chosen_url}", mouse
             return f"Navigasyon linkleri:\n{nav_text[:500]}", mouse
 
@@ -575,7 +671,7 @@ Return ONLY a valid JSON array. No markdown, no explanation."""
 
             # LLM ile doğru linki seç
             pick_prompt = (
-                f"Görev: {task}\n\n"
+                f"Görev: {task or step.get('description', '')}\n\n"
                 f"Görünür linkler (hover sonrası):\n{submenu_text}\n\n"
                 f"Göreve en uygun URL'yi seç ve sadece tam URL'yi yaz."
             )
@@ -587,6 +683,8 @@ Return ONLY a valid JSON array. No markdown, no explanation."""
                 chosen_url = url_match.group()
                 await send_command("navigate", {"tabId": tab_id, "url": chosen_url}, timeout=30)
                 await asyncio.sleep(2.5)
+                if emit and approval_callback:
+                    await self._check_captcha(tab_id, emit, approval_callback)
                 return f"Alt kategori seçildi: {chosen_url}", mouse
             return f"Submenu linkleri:\n{submenu_text[:400]}", mouse
 

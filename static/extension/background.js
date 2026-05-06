@@ -449,5 +449,20 @@ function humanPath(x0, y0, x1, y1) {
   return path;
 }
 
+// ── Service Worker Keepalive (MV3'te SW 30s sonra ölür — alarm ile canlı tut) ──
+chrome.alarms.create("atlas-keepalive", { periodInMinutes: 0.4 }); // her 24s
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "atlas-keepalive") {
+    // SW'yi canlı tutan boş işlem
+    if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+      connect();
+    }
+    // Aktif sekme varsa ping at
+    if (activeTabId) {
+      chrome.tabs.get(activeTabId, () => { chrome.runtime.lastError; }); // hata yoksay
+    }
+  }
+});
+
 // ── Başlat ────────────────────────────────────────────────────────────────────
 connect();

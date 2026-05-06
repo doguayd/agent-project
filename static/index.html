@@ -1674,6 +1674,7 @@ function handleEvent(ev) {
     case 'browser.step':       onBrowserStep(data); break;
     case 'browser.screenshot': onBrowserScreenshot(data); break;
     case 'browser.approval_needed': onBrowserApproval(data); break;
+    case 'browser.captcha_needed':  onBrowserCaptcha(data); break;
     case 'browser.done':       onBrowserDone(data); break;
     case 'browser.error':      onBrowserError(data); break;
     case 'pong': break;
@@ -3413,8 +3414,34 @@ function onBrowserApproval(data) {
 function browserApprove(approved) {
   const box = $('browser-approval-box');
   if (box) box.remove();
+  const captchaBox = $('browser-captcha-box');
+  if (captchaBox) captchaBox.remove();
   state.browserApprovalPending = false;
   send({ type: 'browser_approve', approved });
+}
+
+function onBrowserCaptcha(data) {
+  // Remove any existing captcha notice
+  const existing = $('browser-captcha-box');
+  if (existing) existing.remove();
+
+  const box = document.createElement('div');
+  box.className = 'browser-approval';
+  box.id = 'browser-captcha-box';
+  box.style.cssText = 'border-left: 4px solid #f59e0b; background: rgba(245,158,11,0.12);';
+  const detected = (data.detected || []).join(', ');
+  box.innerHTML = `
+    <div class="approval-title" style="color:#f59e0b">🔒 CAPTCHA / Bot Koruması Tespit Edildi</div>
+    <div class="approval-desc" style="margin:8px 0">
+      ${escHtml(data.message || 'Lütfen Atlas Chrome penceresinde doğrulamayı tamamlayın.')}
+      ${detected ? `<br><small style="opacity:0.7">Tespit: ${escHtml(detected)}</small>` : ''}
+    </div>
+    ${data.image ? `<img src="data:image/png;base64,${data.image}" style="max-width:100%;border-radius:6px;margin:6px 0;cursor:pointer" onclick="openScreenshotModal(this.src)" title="CAPTCHA ekranı">` : ''}
+    <div class="approval-btns">
+      <button class="approval-btn-ok" onclick="browserApprove(true)">✅ Tamamladım, devam et</button>
+      <button class="approval-btn-no" onclick="browserApprove(false)">⛔ Geçilemedi, atla</button>
+    </div>`;
+  document.body.appendChild(box);
 }
 
 function onBrowserDone(data) {

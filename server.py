@@ -371,14 +371,21 @@ async def ws_endpoint(websocket: WebSocket):
     browser_agt.refresh_llm()
     browser_ext.refresh_llm()
 
-    def _get_browser_agent():
-        """Extension bağlıysa onu kullan, yoksa Playwright."""
+    async def _get_browser_agent():
+        """Extension bağlıysa onu kullan. Bağlı değilse 6 saniye bekle (race condition)."""
         if extension_connected():
             logger.info("🌐 Atlas: Chrome extension modu aktif")
             return browser_ext
-        else:
-            logger.info("🌐 Atlas: Playwright modu (extension bağlı değil)")
-            return browser_agt
+        # Extension henüz bağlanmamış olabilir — kısa bekle
+        await emit({"type": "browser.status", "ts": time.time(),
+                    "data": {"message": "⏳ Chrome eklentisi bekleniyor (6s)..."}})
+        for _ in range(12):          # 12 × 0.5s = 6s
+            await asyncio.sleep(0.5)
+            if extension_connected():
+                logger.info("🌐 Atlas: Chrome extension modu aktif (gecikmeli bağlantı)")
+                return browser_ext
+        logger.info("🌐 Atlas: Playwright modu (extension bağlı değil)")
+        return browser_agt
 
     # Browser onay bekleyicisi
     _browser_approval_future: dict = {"fut": None}
@@ -459,7 +466,7 @@ async def ws_endpoint(websocket: WebSocket):
                                     return await asyncio.wait_for(fut, timeout=120)
                                 except asyncio.TimeoutError:
                                     return False
-                            agt = _get_browser_agent()
+                            agt = await _get_browser_agent()
                             await agt.run(g, emit=emit, approval_callback=_approval, context=c)
                         else:
                             # code mode
@@ -599,7 +606,7 @@ async def ws_endpoint(websocket: WebSocket):
                                     return await asyncio.wait_for(fut2, timeout=120)
                                 except asyncio.TimeoutError:
                                     return False
-                            agt2 = _get_browser_agent()
+                            agt2 = await _get_browser_agent()
                             await agt2.run(g, emit=emit, approval_callback=_approval2, context=c)
                         elif cat in ("property", "car", "finance", "osint", "music"):
                             # Route to domain agent
