@@ -8,7 +8,7 @@
  */
 
 const SERVER_WS    = "ws://localhost:8000/ws/atlas-ext";
-const RECONNECT_MS = 3000;
+const RECONNECT_MS = 1000;   // Hızlı yeniden bağlantı (SW cold-start için)
 
 let ws             = null;
 let activeTabId    = null;   // Atlas'ın kontrol ettiği sekme
@@ -117,10 +117,15 @@ async function handleCommand(cmd) {
             const parts = [];
             let n;
             while (n = walker.nextNode()) { const t = n.textContent.trim(); if (t.length > 2) parts.push(t); }
-            return parts.join(" ").slice(0, 8000);
+            return {
+              text:  parts.join(" ").slice(0, 8000),
+              title: document.title || "",
+              url:   location.href  || "",
+            };
           },
         });
-        reply({ text: results[0]?.result || "" });
+        const r = results[0]?.result || {};
+        reply({ text: r.text || "", title: r.title || "", url: r.url || "" });
         break;
       }
 
@@ -257,12 +262,14 @@ async function handleCommand(cmd) {
       }
 
       // ── JS çalıştır ──
+      // ÖNEMLI: new Function(code) → dış fonksiyon return yapmaz, sonuç undefined olur!
+      // Doğru: new Function("return " + code) → IIFE'nin dönüş değerini iletir.
       case "eval": {
         const tabId = params.tabId || activeTabId;
         if (!tabId) { error("Sekme yok"); break; }
         const results = await chrome.scripting.executeScript({
           target: { tabId },
-          func:   new Function(params.code),
+          func:   new Function("return (" + params.code + ")"),
         });
         reply({ result: results[0]?.result });
         break;
@@ -450,7 +457,7 @@ function humanPath(x0, y0, x1, y1) {
 }
 
 // ── Service Worker Keepalive (MV3'te SW 30s sonra ölür — alarm ile canlı tut) ──
-chrome.alarms.create("atlas-keepalive", { periodInMinutes: 0.4 }); // her 24s
+chrome.alarms.create("atlas-keepalive", { periodInMinutes: 0.17 }); // her ~10s — SW'yi uyanık tut
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "atlas-keepalive") {
     // SW'yi canlı tutan boş işlem

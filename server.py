@@ -372,19 +372,29 @@ async def ws_endpoint(websocket: WebSocket):
     browser_ext.refresh_llm()
 
     async def _get_browser_agent():
-        """Extension bağlıysa onu kullan. Bağlı değilse 6 saniye bekle (race condition)."""
+        """Extension bağlıysa onu kullan. Bağlı değilse 12 saniye bekle.
+
+        Neden 12s?
+          - MV3 service worker cold-start ~5-10s sürebilir
+          - Alarm her ~10s'de bir SW'yi uyandırır
+          - RECONNECT_MS=1000 → 1s'de bağlanır (eski: 3s)
+          - Toplam worst-case: 10s (alarm) + 1s (reconnect) + buffer = 12s
+        """
         if extension_connected():
             logger.info("🌐 Atlas: Chrome extension modu aktif")
             return browser_ext
-        # Extension henüz bağlanmamış olabilir — kısa bekle
         await emit({"type": "browser.status", "ts": time.time(),
-                    "data": {"message": "⏳ Chrome eklentisi bekleniyor (6s)..."}})
-        for _ in range(12):          # 12 × 0.5s = 6s
+                    "data": {"message": "⏳ Chrome eklentisi bekleniyor... (max 12s)"}})
+        for i in range(24):          # 24 × 0.5s = 12s
             await asyncio.sleep(0.5)
             if extension_connected():
-                logger.info("🌐 Atlas: Chrome extension modu aktif (gecikmeli bağlantı)")
+                elapsed = (i + 1) * 0.5
+                logger.info(f"🌐 Atlas: Chrome extension modu aktif ({elapsed:.1f}s gecikmeli bağlantı)")
                 return browser_ext
-        logger.info("🌐 Atlas: Playwright modu (extension bağlı değil)")
+        logger.warning("⚠️ Atlas: Chrome extension 12s içinde bağlanamadı → Playwright moduna geçiliyor")
+        logger.warning("   ↳ Çözüm: chrome://extensions → Atlas → 'Yeniden Yükle' yapın")
+        await emit({"type": "browser.status", "ts": time.time(),
+                    "data": {"message": "⚠️ Chrome eklentisi bağlanamadı. chrome://extensions → Atlas → Yeniden Yükle"}})
         return browser_agt
 
     # Browser onay bekleyicisi
