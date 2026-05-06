@@ -250,14 +250,17 @@ class BrowserExtAgent:
 
         await emit(wrap("browser.status", {"message": "🌐 Atlas Chrome'da yeni sekme açıyor..."}))
 
-        result  = {"success": False, "summary": "", "steps": []}
-        t_start = time.perf_counter()
-        tab_id  = None
+        result    = {"success": False, "summary": "", "steps": []}
+        t_start   = time.perf_counter()
+        tab_id    = None
+        window_id = None
 
         try:
-            # Yeni sekme aç
-            resp = await send_command("new_tab", {"url": "about:blank"})
-            tab_id = resp.get("tabId")
+            # Ayrı pencerede yeni sekme aç (kullanıcının penceresini etkilemez)
+            await emit(wrap("browser.status", {"message": "🪟 Atlas ayrı pencerede açılıyor..."}))
+            resp      = await send_command("new_tab", {"url": "about:blank"})
+            tab_id    = resp.get("tabId")
+            window_id = resp.get("windowId")
 
             await emit(wrap("browser.status", {"message": "🧠 Atlas görevi planlıyor..."}))
             plan = await self._plan_task(task, context)
@@ -269,7 +272,7 @@ class BrowserExtAgent:
             result.update(success=True, summary=summary, steps=steps,
                           elapsed_s=round(time.perf_counter() - t_start, 1))
 
-            # Final screenshot
+            # Final screenshot (arka planda — kullanıcıya dokunmaz)
             try:
                 ss = await send_command("screenshot", {"tabId": tab_id}, timeout=10)
                 if ss.get("image"):
@@ -281,10 +284,12 @@ class BrowserExtAgent:
             except Exception:
                 pass
 
-            # Sekmeyi 3 saniye sonra kapat (kullanıcı görebilsin)
+            # 3 saniye sonra pencereyi kapat
             await asyncio.sleep(3)
             try:
-                await send_command("close_tab", {"tabId": tab_id})
+                await send_command("close_tab", {
+                    "tabId": tab_id, "windowId": window_id
+                })
             except Exception:
                 pass
 
