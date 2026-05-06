@@ -20,6 +20,11 @@ maigret>=0.6.0        # Sigma — OSINT
 yfinance>=1.0.0       # Nova — Finans
 pypdf>=3.0.0          # Multimodal PDF okuma
 Pillow>=10.0.0        # Resim işleme
-# ace-step             # Ziya — Müzik (büyük, isteğe bağlı: pip install ace-step)
+# Ziya — Müzik (Meta MusicGen via HuggingFace — Python 3.14 uyumlu)
+# ace-step Python 3.14'te ÇALIŞMAZ: spaCy 3.8.4 için wheel yok
+transformers>=4.40.0   # MusicGen + diğer HuggingFace modelleri
+accelerate>=0.30.0     # GPU hızlandırma
+scipy>=1.12.0          # WAV kaydetme
+# PyTorch CUDA için: pip install torch --index-url https://download.pytorch.org/whl/cu128 --force-reinstall
 playwright>=1.44.0    # Atlas — Web tarayıcı otomasyonu (pip install playwright && playwright install chromium)
 playwright-stealth>=1.0.0  # Bot tespitini azalt

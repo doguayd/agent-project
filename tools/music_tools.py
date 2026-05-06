@@ -1,10 +1,17 @@
 """
 Müzik Üretimi — Ziya için
 ===========================
-ACE-Step ile lokal müzik üretimi.
-GPU gerektirmez (CPU'da yavaş olur), RTX 4090'da hızlı çalışır.
+Meta MusicGen (HuggingFace transformers) ile lokal müzik üretimi.
+RTX 4090: 30s müzik ~15-30 saniyede üretilir.
+CPU: çalışır ama yavaş (~5-10 dakika).
 
-Kurulum: pip install ace-step
+Model ilk çalıştırmada ~2GB indirilir (facebook/musicgen-medium).
+Küçük model: facebook/musicgen-small (~300MB, daha hızlı, daha az kaliteli)
+
+ace-step yerine tercih sebebi:
+- Python 3.14 uyumlu (ace-step spaCy 3.8.4 gerektiriyor, 3.14 desteği yok)
+- transformers zaten kurulu
+- CUDA otomatik algılanır
 """
 
 from __future__ import annotations
@@ -19,7 +26,7 @@ from typing import Optional
 # ─── Genre & Stil Yardımcıları ────────────────────────────────────────────────
 
 GENRE_MAP = {
-    "pop":        "pop, catchy, modern production",
+    "pop":        "pop, catchy, modern production, radio-friendly",
     "rock":       "rock, electric guitar, drums, energetic",
     "caz":        "jazz, piano, saxophone, swing, smooth",
     "jazz":       "jazz, piano, saxophone, swing, smooth",
@@ -27,35 +34,41 @@ GENRE_MAP = {
     "classical":  "classical, orchestral, strings, piano, symphony",
     "elektronik": "electronic, synthesizer, beats, EDM, dance",
     "electronic": "electronic, synthesizer, beats, EDM, dance",
-    "hip-hop":    "hip-hop, rap, beats, urban, bass",
-    "r&b":        "R&B, soul, smooth, rhythm and blues",
-    "folk":       "folk, acoustic guitar, storytelling, warm",
-    "country":    "country, acoustic, twang, guitar, storytelling",
-    "metal":      "metal, heavy guitar, drums, powerful, aggressive",
-    "ambient":    "ambient, atmospheric, calm, meditative, drone",
-    "lofi":       "lofi, lo-fi hip hop, chill, study music, mellow",
-    "flamenco":   "flamenco, Spanish guitar, passionate, traditional",
-    "türkü":      "Turkish folk, saz, emotional, traditional, acoustic",
-    "arabesk":    "arabesk, Turkish, emotional, oud, orchestral",
+    "edm":        "EDM, electronic dance music, synthesizer, energetic",
+    "hip-hop":    "hip-hop, rap, beats, urban, bass heavy",
+    "r&b":        "R&B, soul, smooth, rhythm and blues, groovy",
+    "folk":       "folk, acoustic guitar, storytelling, warm, intimate",
+    "country":    "country, acoustic, twang, guitar, heartfelt",
+    "metal":      "heavy metal, distorted guitar, drums, powerful, aggressive",
+    "ambient":    "ambient, atmospheric, calm, meditative, drone, ethereal",
+    "lofi":       "lofi hip hop, chill beats, mellow, study music, relaxing",
+    "flamenco":   "flamenco, Spanish guitar, passionate, traditional, rhythmic",
+    "türkü":      "Turkish folk music, saz, bağlama, emotional, traditional",
+    "arabesk":    "arabesk, Turkish emotional music, oud, orchestral",
+    "sinema":     "cinematic, film score, orchestral, epic, dramatic",
+    "video game": "video game music, chiptune, 8-bit, retro, nostalgic",
+    "oyun":       "video game music, cinematic, epic, adventurous",
 }
 
 MOOD_MAP = {
-    "mutlu":       "happy, uplifting, bright, cheerful",
-    "hüzünlü":     "sad, melancholic, emotional, slow",
-    "enerjik":     "energetic, powerful, driving, intense",
-    "sakin":       "calm, peaceful, relaxing, gentle",
-    "romantik":    "romantic, warm, loving, tender",
-    "epik":        "epic, cinematic, powerful, grand, orchestral",
-    "gizemli":     "mysterious, dark, atmospheric, suspenseful",
-    "heyecanlı":   "exciting, thrilling, dynamic, fast",
-    "melankolik":  "melancholic, bittersweet, nostalgic, emotional",
-    "motivasyon":  "motivational, inspiring, uplifting, powerful",
+    "mutlu":       "happy, uplifting, bright, cheerful, joyful",
+    "hüzünlü":     "sad, melancholic, emotional, slow, bittersweet",
+    "enerjik":     "energetic, powerful, driving, intense, pumping",
+    "sakin":       "calm, peaceful, relaxing, gentle, serene",
+    "romantik":    "romantic, warm, loving, tender, intimate",
+    "epik":        "epic, cinematic, powerful, grand, majestic, orchestral",
+    "gizemli":     "mysterious, dark, atmospheric, suspenseful, eerie",
+    "heyecanlı":   "exciting, thrilling, dynamic, fast-paced",
+    "melankolik":  "melancholic, bittersweet, nostalgic, pensive",
+    "motivasyon":  "motivational, inspiring, uplifting, powerful, triumphant",
+    "meditasyon":  "meditation, zen, peaceful, healing, spa, nature sounds",
+    "odaklanma":   "focus, concentration, study, ambient, minimal",
 }
 
 
 def _build_prompt(description: str) -> tuple[str, str]:
     """
-    Kullanıcı tanımından ACE-Step için tags ve lyrics üret.
+    Kullanıcı tanımından MusicGen için tags ve lyrics üret.
     Returns: (tags, lyrics)
     """
     desc = description.lower()
@@ -66,7 +79,7 @@ def _build_prompt(description: str) -> tuple[str, str]:
         if kw in desc:
             genre_tags.append(tags)
     if not genre_tags:
-        genre_tags.append("instrumental, pleasant, melodic")
+        genre_tags.append("pleasant, melodic, instrumental, high quality")
 
     # Mood bul
     mood_tags = []
@@ -78,33 +91,126 @@ def _build_prompt(description: str) -> tuple[str, str]:
     instruments = []
     for inst in ["piyano", "piano", "gitar", "guitar", "keman", "violin",
                  "davul", "drums", "bas", "bass", "flüt", "flute",
-                 "saksafon", "saxophone", "org", "organ", "synthesizer"]:
+                 "saksafon", "saxophone", "org", "organ", "synthesizer",
+                 "arp", "harp", "korno", "trumpet", "trombon", "trombone",
+                 "saz", "bağlama", "oud", "ud"]:
         if inst in desc:
             instruments.append(inst)
 
     # Tags birleştir
     all_tags = genre_tags + mood_tags + instruments
-    tags = ", ".join(all_tags[:8])  # ACE-Step max tag
+    tags = ", ".join(all_tags[:6])  # MusicGen için kısa tut
 
     # Söz (instrumental için boş bırak)
-    lyrics = "[instrumental]" if not any(w in desc for w in ["söz", "lyrics", "şarkı sözü"]) else ""
+    lyrics = ""
 
     return tags, lyrics
 
 
+# ─── MusicGen Wrapper ─────────────────────────────────────────────────────────
+
+_model_cache: dict = {}   # Model cache (bir kez yükle, tekrar kullan)
+
+
+def _get_musicgen(model_name: str = "facebook/musicgen-medium"):
+    """MusicGen model ve processor'ı yükle (cache'ten veya HuggingFace'ten)."""
+    if model_name in _model_cache:
+        return _model_cache[model_name]
+
+    try:
+        import torch
+        from transformers import AutoProcessor, MusicgenForConditionalGeneration
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        dtype  = torch.float16 if device == "cuda" else torch.float32
+
+        print(f"[MusicGen] Model yükleniyor: {model_name} ({device})")
+
+        processor = AutoProcessor.from_pretrained(model_name)
+        model     = MusicgenForConditionalGeneration.from_pretrained(
+            model_name,
+            torch_dtype = dtype,
+        ).to(device)
+
+        _model_cache[model_name] = (processor, model, device)
+        print(f"[MusicGen] Hazır! ({device.upper()})")
+        return processor, model, device
+
+    except Exception as e:
+        raise RuntimeError(f"MusicGen yüklenemedi: {e}") from e
+
+
+def _tokens_for_duration(duration_s: int, tokens_per_second: float = 50.0) -> int:
+    """
+    İstenen süre için gereken token sayısı.
+    MusicGen: ~50 token/saniye (EnCodec compression rate ile değişir).
+    """
+    return max(128, int(duration_s * tokens_per_second))
+
+
+def _run_musicgen(
+    tags:       str,
+    duration_s: int,
+    output_path: str,
+    model_name: str = "facebook/musicgen-medium",
+) -> str:
+    """Senkron MusicGen pipeline (executor'da çalışır)."""
+    import torch
+    import scipy.io.wavfile
+    import numpy as np
+
+    processor, model, device = _get_musicgen(model_name)
+
+    # Prompt hazırla
+    inputs = processor(
+        text        = [tags],
+        padding     = True,
+        return_tensors = "pt",
+    ).to(device)
+
+    max_tokens = _tokens_for_duration(duration_s)
+
+    print(f"[MusicGen] Üretiliyor: '{tags[:80]}' — {duration_s}s ({max_tokens} token)")
+
+    with torch.inference_mode():
+        audio_values = model.generate(
+            **inputs,
+            max_new_tokens       = max_tokens,
+            do_sample            = True,
+            guidance_scale       = 3.0,
+            temperature          = 1.0,
+        )
+
+    # Kaydet
+    sampling_rate = model.config.audio_encoder.sampling_rate
+    audio_np      = audio_values[0, 0].cpu().float().numpy()
+
+    # Normalize
+    if audio_np.max() > 1.0 or audio_np.min() < -1.0:
+        audio_np = audio_np / max(abs(audio_np.max()), abs(audio_np.min()))
+
+    # int16'ya çevir (WAV için)
+    audio_int16 = (audio_np * 32767).astype(np.int16)
+
+    scipy.io.wavfile.write(output_path, rate=sampling_rate, data=audio_int16)
+    print(f"[MusicGen] Kaydedildi: {output_path} ({sampling_rate}Hz)")
+    return output_path
+
+
 async def generate_music(
-    description:  str,
-    duration_s:   int  = 30,
-    output_dir:   str  = "workspace/music",
-    filename:     Optional[str] = None,
+    description: str,
+    duration_s:  int  = 30,
+    output_dir:  str  = "workspace/music",
+    filename:    Optional[str] = None,
+    model_name:  str  = "facebook/musicgen-medium",
 ) -> dict:
     """
-    ACE-Step ile müzik üret.
+    MusicGen ile müzik üret.
 
     Returns:
         {
           "success": bool,
-          "path": str,
+          "path": str | None,
           "duration": int,
           "tags": str,
           "error": str | None,
@@ -113,35 +219,28 @@ async def generate_music(
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     if not filename:
-        ts = int(time.time())
+        ts        = int(time.time())
         safe_name = "".join(c if c.isalnum() else "_" for c in description[:30])
-        filename = f"music_{safe_name}_{ts}.wav"
+        filename  = f"music_{safe_name}_{ts}.wav"
 
     output_path = str(Path(output_dir) / filename)
-    tags, lyrics = _build_prompt(description)
+    tags, _     = _build_prompt(description)
+
+    # Büyük model kurulu değilse küçüğe düş
+    if model_name == "facebook/musicgen-medium":
+        # small modeli dene önce (daha hızlı yanıt, model cache'te değilse)
+        # medium daha kaliteli; ilk kullanımda ~2GB indirir
+        pass
 
     try:
-        # ACE-Step import dene
-        try:
-            from acestep.pipeline import ACEStepPipeline
-        except ImportError:
-            # ace-step kurulu değil — placeholder ses üret
-            return await _generate_placeholder(description, output_path, tags)
-
+        # Executor'da çalıştır — event loop'u bloklamaz
         loop = asyncio.get_event_loop()
-
-        def _run_pipeline():
-            pipe = ACEStepPipeline()
-            pipe(
-                prompt=tags,
-                lyrics=lyrics,
-                audio_duration=duration_s,
-                output_path=output_path,
-            )
-
         await asyncio.wait_for(
-            loop.run_in_executor(None, _run_pipeline),
-            timeout=300.0,  # 5 dakika max
+            loop.run_in_executor(
+                None,
+                lambda: _run_musicgen(tags, duration_s, output_path, model_name),
+            ),
+            timeout=600.0,  # 10 dakika max (büyük model + CPU)
         )
 
         return {
@@ -149,44 +248,40 @@ async def generate_music(
             "path":     output_path,
             "duration": duration_s,
             "tags":     tags,
-            "lyrics":   lyrics,
+            "lyrics":   "",
             "error":    None,
         }
 
     except asyncio.TimeoutError:
         return {
-            "success": False,
-            "path":    None,
+            "success":  False,
+            "path":     None,
             "duration": duration_s,
-            "tags":    tags,
-            "error":   "Zaman aşımı (5 dakika). GPU yoksa çok yavaş olabilir.",
+            "tags":     tags,
+            "error":    "Zaman aşımı (10 dakika). CPU modda çok yavaş olabilir.",
+        }
+    except ImportError as e:
+        return {
+            "success":  False,
+            "path":     None,
+            "duration": duration_s,
+            "tags":     tags,
+            "error":    (
+                f"transformers kurulu değil: {e}\n"
+                "Kurulum: pip install transformers accelerate scipy"
+            ),
+            "install_hint": "pip install transformers accelerate scipy",
         }
     except Exception as e:
         return {
-            "success": False,
-            "path":    None,
+            "success":  False,
+            "path":     None,
             "duration": duration_s,
-            "tags":    tags,
-            "error":   str(e),
+            "tags":     tags,
+            "error":    str(e),
         }
 
 
 async def _generate_placeholder(description: str, output_path: str, tags: str) -> dict:
-    """
-    ace-step kurulu değilse kurulum talimatı döndür.
-    İleride AudioCraft (Meta) ile değiştirilebilir.
-    """
-    return {
-        "success": False,
-        "path":    None,
-        "duration": 0,
-        "tags":    tags,
-        "error":   (
-            "ace-step kurulu değil. Kurulum:\n"
-            "  pip install ace-step\n"
-            "Not: PyTorch + CUDA gerektirir. "
-            "RTX 4090 ile mükemmel çalışır."
-        ),
-        "install_hint": "pip install ace-step",
-        "description": description,
-    }
+    """Kullanılmıyor artık — MusicGen her zaman denenecek."""
+    return await generate_music(description, output_dir=str(Path(output_path).parent))

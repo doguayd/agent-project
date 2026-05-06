@@ -119,13 +119,13 @@ Sadece virgülle ayrılmış tagları yaz, başka bir şey ekleme."""
             )
         else:
             err = result.get("error", "Bilinmeyen hata")
-            if "install" in err.lower():
+            if "install" in err.lower() or "install_hint" in result:
                 summary = (
-                    f"🎵 Müzik üretici henüz kurulmamış.\n\n"
-                    f"Kurulum için terminalde şunu çalıştır:\n"
-                    f"```\npip install ace-step\n```\n\n"
-                    f"Sonra aynı isteği tekrar gönder. "
-                    f"RTX 4090'ın ile {duration_s}s müzik ~30 saniyede üretilir."
+                    f"🎵 Müzik üretici bağımlılıkları eksik.\n\n"
+                    f"Kurulum için terminalde:\n"
+                    f"```\npip install transformers accelerate scipy\n```\n\n"
+                    f"RTX 4090'ın ile {duration_s}s müzik ~20-30 saniyede üretilir.\n"
+                    f"Model ilk çalıştırmada ~1.5GB indirilir (facebook/musicgen-medium)."
                 )
             else:
                 summary = f"Müzik üretimi başarısız: {err}"

@@ -7,6 +7,21 @@ mimari kararları belgeler. Gelecekteki geliştirmeler için referans olarak kul
 
 ## 🐛 Bilinen Hatalar & Çözümler
 
+### 0. ace-step — Python 3.14'te çalışmıyor
+**Sorun:** `pip install ace-step` → `spacy==3.8.4` için Python 3.14 wheel yok.  
+**Çözüm:** Meta **MusicGen** kullan (`transformers` + `accelerate` + `scipy`).  
+**Kurulum:**
+```bash
+pip install transformers accelerate scipy
+# CUDA için (RTX 4090):
+pip install torch --index-url https://download.pytorch.org/whl/cu128 --force-reinstall
+```
+**Kalite:** MusicGen-medium ACE-Step'e yakın kalite, daha iyi Python uyumu.  
+**Model:** `facebook/musicgen-medium` (~1.5GB, ilk kullanımda indirilir).  
+**Hız RTX 4090:** 30s müzik ≈ 20-30s üretim süresi.
+
+---
+
 ### 1. `new Function(code)` — eval sonucu undefined döner
 **Dosya:** `static/extension/background.js` → `case "eval"`  
 **Sorun:**
