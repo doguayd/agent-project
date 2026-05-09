@@ -63,11 +63,24 @@ async def _apply_supervisor(provider: str, model: str) -> dict:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Supervisor seç
     provider, model = await auto_select_supervisor()
     await _apply_supervisor(provider, model)
     mode = "online" if provider != "ollama" else "offline"
     logger.info(f"Web UI  →  http://{WS_HOST if WS_HOST != '0.0.0.0' else 'localhost'}:{WS_PORT}  [{mode}]")
+
+    # MCP sunucularını arka planda başlat
+    from core.mcp_manager import MCPManager
+    from pathlib import Path as _Path
+    mcp = MCPManager.instance()
+    mcp._config_path  = _Path(__file__).parent / "mcp.json"
+    mcp._project_root = _Path(__file__).parent
+    asyncio.create_task(mcp.start())
+
     yield
+
+    # Kapatırken MCP sunucularını durdur
+    await MCPManager.instance().stop()
 
 
 app = FastAPI(title="Multi-Agent Coding System", lifespan=lifespan)
@@ -79,6 +92,55 @@ _STATIC = Path(__file__).parent / "static"
 @app.get("/")
 async def root():
     return FileResponse(_STATIC / "index.html")
+
+
+@app.get("/api/mcp/status")
+async def mcp_status():
+    """MCP sunucularının ve araçlarının durumu."""
+    from core.mcp_manager import MCPManager
+    return JSONResponse(MCPManager.instance().status())
+
+
+@app.get("/api/mcp/tools")
+async def mcp_tools():
+    """Tüm MCP araçlarını listele (provider formatında değil, ham)."""
+    from core.mcp_manager import MCPManager
+    tools = MCPManager.instance().get_all_tools()
+    return JSONResponse({
+        "count": len(tools),
+        "tools": [
+            {
+                "name":        t.name,
+                "description": t.description,
+                "server":      t.server_name,
+                "schema":      t.input_schema,
+            }
+            for t in tools
+        ]
+    })
+
+
+@app.post("/api/mcp/call")
+async def mcp_call(body: dict):
+    """Test: doğrudan MCP araç çağrısı."""
+    from core.mcp_manager import MCPManager
+    tool_name = body.get("tool")
+    arguments = body.get("arguments", {})
+    if not tool_name:
+        return JSONResponse({"error": "tool gerekli"}, status_code=400)
+    result = await MCPManager.instance().call_tool(tool_name, arguments)
+    return JSONResponse({"result": result})
+
+
+@app.post("/api/mcp/reload")
+async def mcp_reload(body: dict):
+    """Belirli bir MCP sunucusunu yeniden başlat (hot-reload)."""
+    from core.mcp_manager import MCPManager
+    name = body.get("server")
+    if not name:
+        return JSONResponse({"error": "server gerekli"}, status_code=400)
+    ok = await MCPManager.instance().restart_server(name)
+    return JSONResponse({"success": ok, "server": name})
 
 
 @app.get("/health")

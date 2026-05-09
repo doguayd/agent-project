@@ -1,0 +1,44 @@
+{
+  "_comment": "Atlas MCP Server Konfigürasyonu — claude_desktop_config.json ile aynı format",
+  "_docs": [
+    "Yeni sunucu eklemek için mcpServers içine bir blok ekle.",
+    "enabled: false ile geçici kapatılabilir.",
+    "Sunucular Atlas başladığında arka planda spawn edilir (stdio transport, JSON-RPC 2.0).",
+    "Araçlar otomatik keşfedilir ve LLM'e sunulur (Gemini/Claude/Ollama function calling)."
+  ],
+
+  "mcpServers": {
+
+    "atlas-tools": {
+      "_comment": "Eski sürüm — llama_cpp bağımlılığı var. Yeni sürüm hazır olunca yolu güncelle.",
+      "description": "Atlas kodlama & sistem araçları (dosya, arama, süreç, AI)",
+      "command": "python",
+      "args": ["tools/main.py"],
+      "cwd": ".",
+      "env": {},
+      "enabled": false
+    },
+
+    "_example_node": {
+      "_comment": "Node.js MCP sunucu örneği — gerçek bir sunucu ile değiştir",
+      "description": "Örnek Node.js MCP sunucusu",
+      "command": "node",
+      "args": ["mcp-servers/my-server/index.js"],
+      "cwd": ".",
+      "env": {
+        "API_KEY": "buraya_api_key"
+      },
+      "enabled": false
+    },
+
+    "_example_python": {
+      "_comment": "Python MCP sunucu örneği — fastmcp ile yazılmış",
+      "description": "Örnek Python FastMCP sunucusu",
+      "command": "python",
+      "args": ["mcp-servers/my-server/main.py"],
+      "cwd": ".",
+      "env": {},
+      "enabled": false
+    }
+  }
+}

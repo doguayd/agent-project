@@ -220,3 +220,172 @@ def create_llm(provider: str, model: str, temperature: float = 0.1) -> BaseLLM:
         case "claude":  return ClaudeLLM(model, temperature)
         case _:
             raise ValueError(f"Bilinmeyen sağlayıcı: {provider!r}")
+
+
+# ─── MCP Araç Döngüsü ────────────────────────────────────────────────────────
+
+async def run_with_mcp_tools(
+    llm:      BaseLLM,
+    messages: list[dict],
+    provider: str,
+    max_rounds: int = 10,
+    emit=None,
+) -> str:
+    """
+    LLM'i MCP araçlarıyla çalıştır.
+    LLM bir araç çağrısı yapana kadar döngü devam eder.
+
+    Akış:
+      1. LLM'e mevcut araçları bildir
+      2. LLM yanıt üretir (text veya tool_call)
+      3. tool_call varsa → MCPManager üzerinden araç çağrılır
+      4. Araç sonucu mesaj geçmişine eklenir
+      5. LLM tekrar yanıt üretir (döngü)
+      6. Düz text yanıt gelene veya max_rounds dolana kadar devam et
+
+    Not: Şu an Gemini ve Anthropic function calling destekler.
+    Ollama tool-use destekli modeller için de çalışır (qwen3, llama3.3).
+    """
+    from core.mcp_manager import MCPManager
+    import json as _json
+    import logging as _log
+    _logger = _log.getLogger("llm-mcp")
+
+    mcp = MCPManager.instance()
+    tools = mcp.get_tools_for_llm(provider)
+    msgs = list(messages)
+
+    for round_i in range(max_rounds):
+        # ── Gemini function calling ──────────────────────────────────────
+        if provider == "gemini" and tools:
+            try:
+                from google.genai import types as _gt
+                gt = llm._gt
+                system, history = llm._convert(msgs)
+                fd_list = [
+                    gt.FunctionDeclaration(**t)
+                    for t in tools
+                ]
+                cfg = gt.GenerateContentConfig(
+                    temperature        = llm.temperature,
+                    system_instruction = system or None,
+                    tools              = [gt.Tool(function_declarations=fd_list)],
+                )
+                resp = await llm._client.aio.models.generate_content(
+                    model    = llm.model,
+                    contents = history,
+                    config   = cfg,
+                )
+                # Tool call var mı?
+                calls = []
+                for part in (resp.candidates[0].content.parts if resp.candidates else []):
+                    if hasattr(part, "function_call") and part.function_call:
+                        calls.append(part.function_call)
+
+                if not calls:
+                    return resp.text or ""
+
+                # Tool call'ları işle
+                tool_results = []
+                for fc in calls:
+                    name = fc.name
+                    args = dict(fc.args)
+                    _logger.info(f"[MCP] Araç: {name}({args})")
+                    if emit:
+                        await emit({"type": "mcp.tool_call", "data": {"tool": name, "args": args}})
+                    result = await mcp.call_tool(name, args)
+                    tool_results.append(gt.Part(
+                        function_response=gt.FunctionResponse(
+                            name=name, response={"result": result}
+                        )
+                    ))
+
+                # Geçmişe ekle
+                history.append(gt.Content(role="model", parts=[
+                    gt.Part(function_call=fc) for fc in calls
+                ]))
+                history.append(gt.Content(role="user", parts=tool_results))
+
+                # Yeni mesajlar için msgs'i güncelle
+                msgs = [m for m in msgs if m.get("role") != "system"]
+                if system:
+                    msgs = [{"role": "system", "content": system}] + msgs
+                continue
+
+            except Exception as e:
+                _logger.error(f"Gemini MCP döngüsü hatası: {e}")
+                break
+
+        # ── Anthropic function calling ───────────────────────────────────
+        elif provider == "anthropic" and tools:
+            try:
+                import anthropic as _ant
+                system, rest = llm._split(msgs)
+                resp = await llm._client.messages.create(
+                    model      = llm.model,
+                    max_tokens = 8192,
+                    system     = system or "You are a helpful assistant.",
+                    messages   = rest,
+                    tools      = tools,
+                    temperature= llm.temperature,
+                )
+                if resp.stop_reason != "tool_use":
+                    return "".join(b.text for b in resp.content if hasattr(b, "text"))
+
+                # Tool call
+                rest.append({"role": "assistant", "content": resp.content})
+                tool_results = []
+                for block in resp.content:
+                    if block.type == "tool_use":
+                        _logger.info(f"[MCP] Araç: {block.name}({block.input})")
+                        if emit:
+                            await emit({"type": "mcp.tool_call", "data": {"tool": block.name, "args": block.input}})
+                        result = await mcp.call_tool(block.name, block.input)
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": result,
+                        })
+                rest.append({"role": "user", "content": tool_results})
+                msgs = ([{"role": "system", "content": system}] if system else []) + rest
+                continue
+
+            except Exception as e:
+                _logger.error(f"Anthropic MCP döngüsü hatası: {e}")
+                break
+
+        # ── Ollama tool use ──────────────────────────────────────────────
+        elif provider == "ollama" and tools:
+            try:
+                resp = await llm._client.chat(
+                    model    = llm.model,
+                    messages = msgs,
+                    tools    = tools,
+                    options  = {"temperature": llm.temperature},
+                    stream   = False,
+                )
+                msg = resp.message
+                if not msg.tool_calls:
+                    return msg.content or ""
+
+                msgs.append({"role": "assistant", "content": msg.content or "", "tool_calls": msg.tool_calls})
+                for tc in msg.tool_calls:
+                    fn   = tc.function
+                    name = fn.name
+                    args = dict(fn.arguments) if fn.arguments else {}
+                    _logger.info(f"[MCP] Araç: {name}({args})")
+                    if emit:
+                        await emit({"type": "mcp.tool_call", "data": {"tool": name, "args": args}})
+                    result = await mcp.call_tool(name, args)
+                    msgs.append({"role": "tool", "content": result})
+                continue
+
+            except Exception as e:
+                _logger.error(f"Ollama MCP döngüsü hatası: {e}")
+                break
+
+        # Araç yok veya provider desteklemiyor → normal generate
+        break
+
+    # Fallback: normal generate
+    return await llm.generate(msgs)
