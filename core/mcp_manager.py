@@ -25,6 +25,7 @@ import asyncio
 import json
 import logging
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -111,15 +112,40 @@ class MCPSession:
         work_dir = (project_root / cwd).resolve()
 
         try:
+            # Windows'ta npx/mcp-server-* gibi komutlar .cmd dosyasıdır;
+            # asyncio.create_subprocess_exec bunları bulamaz → cmd /c ile çalıştır.
+            if sys.platform == "win32":
+                resolved = shutil.which(cmd)   # tam yol bul (örn: npx.cmd)
+                if resolved and resolved.lower().endswith((".cmd", ".bat")):
+                    exec_cmd  = "cmd"
+                    exec_args = ["/c", resolved, *args]
+                elif resolved:
+                    exec_cmd  = resolved
+                    exec_args = list(args)
+                else:
+                    # .cmd'yi kendimiz dene
+                    for ext in (".cmd", ".bat", ".exe", ""):
+                        candidate = shutil.which(cmd + ext)
+                        if candidate:
+                            exec_cmd  = "cmd"
+                            exec_args = ["/c", candidate, *args]
+                            break
+                    else:
+                        exec_cmd  = cmd
+                        exec_args = list(args)
+            else:
+                exec_cmd  = cmd
+                exec_args = list(args)
+
             self._proc = await asyncio.create_subprocess_exec(
-                cmd, *args,
+                exec_cmd, *exec_args,
                 stdin  = asyncio.subprocess.PIPE,
                 stdout = asyncio.subprocess.PIPE,
                 stderr = asyncio.subprocess.PIPE,
                 cwd    = str(work_dir),
                 env    = env,
             )
-            logger.info(f"[MCP:{self.name}] PID {self._proc.pid} başladı — {cmd} {' '.join(args)}")
+            logger.info(f"[MCP:{self.name}] PID {self._proc.pid} başladı — {exec_cmd} {' '.join(exec_args)}")
 
             # Kısa süre bekle, process hemen çıktıysa stderr'i logla
             await asyncio.sleep(0.5)

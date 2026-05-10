@@ -471,5 +471,17 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+// ── Popup ile iletişim (chrome.runtime.onMessage) ────────────────────────────
+// popup.js → chrome.runtime.sendMessage({ type:"get.status" }) → buraya gelir
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "get.status") {
+    sendResponse({
+      connected: !!(ws && ws.readyState === WebSocket.OPEN),
+      wsState:   ws ? ws.readyState : -1,  // 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
+    });
+    return true;  // async response için gerekli
+  }
+});
+
 // ── Başlat ────────────────────────────────────────────────────────────────────
 connect();

@@ -514,19 +514,31 @@ async def ws_endpoint(websocket: WebSocket):
                                     "data": {"category": cat, "goal": g}})
 
                         if cat == "property":
-                            r = await property_agt.search(g, emit=emit)
+                            r = await property_agt.search(g, emit=emit, context=c)
                             await emit({"type": "property.results", "ts": time.time(), "data": r})
                         elif cat == "car":
-                            r = await car_agt.search(g, emit=emit)
+                            try:
+                                r = await car_agt.search(g, emit=emit, context=c)
+                            except TypeError:
+                                r = await car_agt.search(g, emit=emit)
                             await emit({"type": "car.results", "ts": time.time(), "data": r})
                         elif cat == "finance":
-                            r = await finance_agt.analyze(g, emit=emit)
+                            try:
+                                r = await finance_agt.analyze(g, emit=emit, context=c)
+                            except TypeError:
+                                r = await finance_agt.analyze(g, emit=emit)
                             await emit({"type": "finance.results", "ts": time.time(), "data": r})
                         elif cat == "osint":
-                            r = await osint_agt.search(g, emit=emit)
+                            try:
+                                r = await osint_agt.search(g, emit=emit, context=c)
+                            except TypeError:
+                                r = await osint_agt.search(g, emit=emit)
                             await emit({"type": "osint.results", "ts": time.time(), "data": r})
                         elif cat == "music":
-                            r = await music_agt.create(g, emit=emit)
+                            try:
+                                r = await music_agt.create(g, emit=emit, context=c)
+                            except TypeError:
+                                r = await music_agt.create(g, emit=emit)
                             await emit({"type": "music.results", "ts": time.time(), "data": r})
                         elif cat == "browser":
                             async def _approval(action_desc: str, screenshot_b64: str) -> bool:
@@ -681,7 +693,7 @@ async def ws_endpoint(websocket: WebSocket):
                             agt2 = await _get_browser_agent()
                             await agt2.run(g, emit=emit, approval_callback=_approval2, context=c)
                         elif cat in ("property", "car", "finance", "osint", "music"):
-                            # Route to domain agent
+                            # Route to domain agent — pass context for follow-up awareness
                             _agents = {
                                 "property": property_agt.search,
                                 "car":      car_agt.search,
@@ -690,7 +702,11 @@ async def ws_endpoint(websocket: WebSocket):
                                 "music":    music_agt.create,
                             }
                             fn = _agents[cat]
-                            r  = await fn(g, emit=emit)
+                            try:
+                                r = await fn(g, emit=emit, context=c)
+                            except TypeError:
+                                # Fallback: agent doesn't support context param yet
+                                r = await fn(g, emit=emit)
                             await emit({"type": f"{cat}.results", "ts": time.time(), "data": r})
                         else:
                             result = await orch.run(g, c)

@@ -42,14 +42,18 @@ class PropertyAgent:
         )
         self._label = f"{cfg['provider']}:{cfg['model']}"
 
-    async def _interpret_query(self, raw_query: str) -> dict:
+    async def _interpret_query(self, raw_query: str, context: str = "") -> dict:
         """
         LLM yardımıyla kullanıcı sorgusunu yapılandır.
         Returns: {"search_query": ..., "pois": [...], "max_results": ..., "mode": ...}
         """
+        ctx_section = ""
+        if context:
+            ctx_section = f"\nConversation context (previous messages): {context[:800]}\n"
+
         prompt = f"""You are a Turkish real estate search assistant.
 Parse this user query into a structured search request.
-
+{ctx_section}
 User query: "{raw_query}"
 
 Respond with ONLY valid JSON:
@@ -147,6 +151,7 @@ Fiyat aralığı: {price_range}
         query:        str,
         emit:         Emitter = noop,
         fetch_detail: bool    = False,
+        context:      str     = "",
     ) -> dict:
         """
         Ana arama metodu.
@@ -167,7 +172,7 @@ Fiyat aralığı: {price_range}
         await emit(wrap("property.status", {
             "step": "parse", "message": "Sorgu analiz ediliyor..."
         }))
-        query_info = await self._interpret_query(query)
+        query_info = await self._interpret_query(query, context=context)
         search_query = query_info.get("search_query", query)
         pois         = query_info.get("pois", [])
         max_results  = query_info.get("max_results", 15)
