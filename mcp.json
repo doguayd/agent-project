@@ -1,17 +1,45 @@
 {
   "_comment": "Atlas MCP Server Konfigürasyonu — claude_desktop_config.json ile aynı format",
   "_docs": [
-    "Yeni sunucu eklemek için mcpServers içine bir blok ekle.",
+    "Yeni sunucu eklemek için mcpServers içine blok ekle → Atlas yeniden başlatınca aktif olur.",
     "enabled: false ile geçici kapatılabilir.",
     "Sunucular Atlas başladığında arka planda spawn edilir (stdio transport, JSON-RPC 2.0).",
-    "Araçlar otomatik keşfedilir ve LLM'e sunulur (Gemini/Claude/Ollama function calling)."
+    "Araçlar otomatik keşfedilir ve LLM'e sunulur (Gemini/Claude/Ollama function calling).",
+    "POST /api/mcp/reload {server:'...'} ile tek sunucu hot-reload edilebilir.",
+    "GET /api/mcp/status → hangi sunucular aktif, kaç araç var.",
+    "GET /api/mcp/tools  → tüm araç listesi."
   ],
 
   "mcpServers": {
 
+    "playwright": {
+      "description": "Microsoft Playwright MCP — headless browser automation, screenshot, form fill, navigation",
+      "_docs": "API key gerekmez. Kurulum: npm install -g @playwright/mcp",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless",
+        "--browser", "chromium",
+        "--viewport-size", "1366,768",
+        "--output-dir", "workspace/screenshots"
+      ],
+      "env": {},
+      "enabled": true
+    },
+
+    "filesystem": {
+      "description": "MCP Filesystem Server — workspace dosyalarını oku/yaz/listele",
+      "_docs": "API key gerekmez. Kurulum: npm install -g @modelcontextprotocol/server-filesystem",
+      "command": "mcp-server-filesystem",
+      "args": ["F:\\Projeler\\Agent_Project\\workspace"],
+      "env": {},
+      "enabled": true
+    },
+
     "atlas-tools": {
-      "_comment": "Eski sürüm — llama_cpp bağımlılığı var. Yeni sürüm hazır olunca yolu güncelle.",
-      "description": "Atlas kodlama & sistem araçları (dosya, arama, süreç, AI)",
+      "description": "Atlas kodlama & sistem araçları (FastMCP — dosya, arama, süreç, AI, StackOverflow)",
+      "_docs": "Eski sürüm — llama_cpp bağımlılığı var. Yeni sürümü buraya ekle.",
+      "_new_version": "Yeni sürüm hazır olunca: args kısmını güncelle, enabled: true yap.",
       "command": "python",
       "args": ["tools/main.py"],
       "cwd": ".",
@@ -19,26 +47,43 @@
       "enabled": false
     },
 
-    "_example_node": {
-      "_comment": "Node.js MCP sunucu örneği — gerçek bir sunucu ile değiştir",
-      "description": "Örnek Node.js MCP sunucusu",
-      "command": "node",
-      "args": ["mcp-servers/my-server/index.js"],
-      "cwd": ".",
+    "firecrawl": {
+      "description": "Firecrawl MCP — bot korumalı siteleri scrape et, web içeriği çek",
+      "_docs": "FIRECRAWL_API_KEY gerekli. Ücretsiz plan: https://www.firecrawl.dev/",
+      "_use_case": "sahibinden.com, emlak siteleri, bot korumalı e-ticaret",
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
       "env": {
-        "API_KEY": "buraya_api_key"
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
       },
-      "enabled": false
+      "enabled": false,
+      "_enable_when": "FIRECRAWL_API_KEY .env dosyasına eklendikten sonra"
     },
 
-    "_example_python": {
-      "_comment": "Python MCP sunucu örneği — fastmcp ile yazılmış",
-      "description": "Örnek Python FastMCP sunucusu",
-      "command": "python",
-      "args": ["mcp-servers/my-server/main.py"],
-      "cwd": ".",
-      "env": {},
-      "enabled": false
+    "brave-search": {
+      "description": "Brave Search MCP — reklamsız web araması (Google alternatifi)",
+      "_docs": "BRAVE_API_KEY gerekli. Ücretsiz 2000 sorgu/ay: https://api.search.brave.com/",
+      "_use_case": "web araştırması, OSINT, ürün araması",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      },
+      "enabled": false,
+      "_enable_when": "BRAVE_API_KEY .env dosyasına eklendikten sonra"
+    },
+
+    "apify": {
+      "description": "Apify MCP — 55+ hazır scraper (Instagram, TikTok, Google Maps, e-ticaret)",
+      "_docs": "APIFY_TOKEN gerekli. Ücretsiz $5 kredi: https://apify.com/",
+      "_use_case": "sosyal medya scraping, pazar araştırması, lead generation",
+      "command": "npx",
+      "args": ["-y", "@apify/actors-mcp-server"],
+      "env": {
+        "APIFY_TOKEN": "${APIFY_TOKEN}"
+      },
+      "enabled": false,
+      "_enable_when": "APIFY_TOKEN .env dosyasına eklendikten sonra"
     }
   }
 }

@@ -7,7 +7,13 @@ load_dotenv()
 GOOGLE_API_KEY      = os.getenv("GOOGLE_API_KEY", "")
 ANTHROPIC_API_KEY   = os.getenv("ANTHROPIC_API_KEY", "")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")  # Distance Matrix API
-OLLAMA_HOST       = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_HOST         = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
+# ─── MCP Sunucu API Anahtarları ─────────────────────────────────────────────
+# mcp.json'da ilgili sunucu enabled:true yapılınca bu anahtarlar otomatik kullanılır
+FIRECRAWL_API_KEY   = os.getenv("FIRECRAWL_API_KEY", "")   # firecrawl-mcp
+BRAVE_API_KEY       = os.getenv("BRAVE_API_KEY", "")        # server-brave-search
+APIFY_TOKEN         = os.getenv("APIFY_TOKEN", "")          # actors-mcp-server
 
 # ─── Supervisor Modu ────────────────────────────────────────────────────────
 # "auto"   → İnternet varsa Gemini, yoksa en iyi yerel model
