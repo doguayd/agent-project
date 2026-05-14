@@ -412,7 +412,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--mila); flex-shrink: 0;
 }
-.think-dot.running { animation: pulse 1.2s infinite; }
+.think-dot.running { animation: pulse 1s infinite; }
 .think-dot.done { background: var(--ok); animation: none; }
 .think-dot.error { background: var(--err); animation: none; }
 @keyframes pulse {
@@ -449,7 +449,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
   border: 1px solid var(--border-dim); flex-shrink: 0;
 }
 .step-status { font-size: 11px; flex-shrink: 0; }
-.step-status.running { color: var(--warn); animation: fadepulse 1.2s infinite; }
+.step-status.running { color: var(--warn); animation: fadepulse 1s infinite; }
 .step-status.done { color: var(--ok); animation: none; }
 .step-status.error { color: var(--err); animation: none; }
 @keyframes fadepulse { 0%,100%{opacity:1} 50%{opacity:.4} }
@@ -496,7 +496,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
   border-radius: 4px; padding: 1px 5px; color: var(--mila);
 }
 .mila-response pre {
-  background: #0d0d1a; border: 1px solid var(--border);
+  background: var(--bg-input); border: 1px solid var(--border);
   border-radius: var(--r); overflow: hidden;
   margin: 12px 0; position: relative;
 }
@@ -831,7 +831,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
 
 /* File viewer */
 .file-viewer-pre {
-  background: #0d0d1a; border-radius: var(--r);
+  background: var(--bg-input); border-radius: var(--r);
   padding: 16px; font-family: var(--mono); font-size: 12.5px;
   line-height: 1.65; color: var(--text); overflow: auto;
   max-height: calc(90vh - 140px);
@@ -862,7 +862,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
 /* ════════════════════════════════════════════════════════
    PROPERTY SEARCH MODE
 ════════════════════════════════════════════════════════ */
-#property-area { display: none; flex-direction: column; height: 100%; }
+#property-area { display: none; flex-direction: column; flex: 1; overflow: hidden; }
 #property-area.active { display: flex; }
 #chat-area { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 #chat-area.hidden { display: none; }
@@ -987,7 +987,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
 /* ════════════════════════════════════════════════════════
    DOMAIN MODES (Araç / Finans / OSINT / Müzik)
 ════════════════════════════════════════════════════════ */
-#domain-area { display: none; flex-direction: column; height: 100%; }
+#domain-area { display: none; flex-direction: column; flex: 1; overflow: hidden; }
 #domain-area.active { display: flex; }
 
 .domain-results-area {
@@ -1087,6 +1087,16 @@ input, textarea { font-family: var(--ui); color: var(--text); }
 .osint-site { flex: 1; font-size: 12.5px; color: var(--text); }
 .osint-link { font-size: 11.5px; color: var(--sigma); }
 
+/* Kullanıcı sorgu başlığı — domain modlarda aramanın üstünde gösterilir */
+.domain-query-header {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px; margin-bottom: 14px;
+  background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.18);
+  border-radius: var(--r); font-size: 13.5px; color: var(--text);
+}
+.domain-query-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.domain-query-text { line-height: 1.5; word-break: break-word; }
+
 /* Summary line shared */
 .domain-summary {
   padding: 12px 16px; background: rgba(129,140,248,.06);
@@ -1110,7 +1120,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
 /* ════════════════════════════════════════════════════════
    BROWSER MODE
 ════════════════════════════════════════════════════════ */
-#browser-area { display: none; flex-direction: column; height: 100%; }
+#browser-area { display: none; flex-direction: column; flex: 1; overflow: hidden; }
 #browser-area.active { display: flex; }
 
 .browser-layout {
@@ -1305,7 +1315,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
             <div class="prop-welcome-icon">🏠</div>
             <div class="prop-welcome-title">İlan Arama</div>
             <div class="prop-welcome-sub">
-              sahibinden.com'dan istediğiniz özelliklere göre ilan arar, detaylarını çeker ve metro/ulaşıma olan mesafeyi hesaplarım.
+              emlakjet.com'dan istediğiniz özelliklere göre ilan arar, detaylarını çeker ve metro/ulaşıma olan mesafeyi hesaplarım.
             </div>
             <div class="prop-suggestions">
               <button class="prop-suggestion" onclick="fillPropInput('Kadıköy 2+1 kiralık daire 10000-15000 TL, metroya yürüme mesafesi')">Kadıköy 2+1 kiralık daire 10000-15000 TL, metroya mesafe</button>
@@ -1424,7 +1434,7 @@ input, textarea { font-family: var(--ui); color: var(--text); }
             <div class="domain-welcome-icon">🎵</div>
             <div class="domain-welcome-title">Müzik Üretimi</div>
             <div class="domain-welcome-sub">
-              ACE-Step yapay zeka modeli ile lokal GPU'da orijinal müzik üretir. Tarz, tempo, enstrüman ve ruh halini tanımlayın.
+              MusicGen (facebook/musicgen-medium) modeli ile lokal GPU'da orijinal müzik üretir. Tarz, tempo, enstrüman ve ruh halini tanımlayın.
             </div>
             <div class="domain-suggestions">
               <button class="domain-suggestion music" onclick="fillAndSend('30 saniyelik melankolik piyano parçası, yavaş tempo')">30 saniyelik melankolik piyano parçası, yavaş tempo</button>
@@ -1553,6 +1563,7 @@ const state = {
   ws: null,
   connected: false,
   running: false,
+  runningMode: null,      // hangi modun görevi çalışıyor ('code'|'music'|...)
   clarifying: false,
   mode: 'idle',           // 'idle' | 'running' | 'completed'
   appMode: 'code',        // 'code'|'property'|'car'|'finance'|'osint'|'music'|'browser'
@@ -1586,15 +1597,32 @@ function connect() {
     state.connected = true;
     state.wsRetries = 0;
     setWsDot('ok');
+    // Remove stale "reconnect" button if present
+    const oldBtn = $('ws-reconnect-btn');
+    if (oldBtn) oldBtn.remove();
     ws.send(JSON.stringify({type:'ping'}));
   };
 
   ws.onclose = () => {
     state.connected = false;
     setWsDot('disconnected');
-    if (state.wsRetries < 5) {
+    if (state.wsRetries < 8) {
       state.wsRetries++;
-      setTimeout(connect, 3000);
+      const delay = Math.min(3000 * state.wsRetries, 15000); // backoff: 3s, 6s, 9s… max 15s
+      setTimeout(connect, delay);
+    } else {
+      // Retry exhausted — show permanent notification
+      const lbl = $('ws-label');
+      if (lbl) lbl.textContent = 'Bağlantı yok — sunucu kapalı?';
+      if (!$('ws-reconnect-btn')) {
+        const btn = document.createElement('button');
+        btn.id = 'ws-reconnect-btn';
+        btn.textContent = 'Yeniden bağlan';
+        btn.style.cssText = 'margin-left:8px;padding:2px 8px;font-size:11px;border-radius:4px;background:var(--border-mid);color:var(--text-soft);cursor:pointer;border:1px solid var(--border-mid)';
+        btn.onclick = () => { state.wsRetries = 0; btn.remove(); connect(); };
+        const dot = $('ws-dot');
+        if (dot && dot.parentNode) dot.parentNode.appendChild(btn);
+      }
     }
   };
 
@@ -1691,6 +1719,7 @@ function onReady(data) {
 
 function onSessionStart(data) {
   state.running = true;
+  state.runningMode = 'code';
   state.mode = 'running';
   state.reviewPhase = false;
   state.agentOutputs = {};
@@ -1830,6 +1859,7 @@ function onSupDone(data) {
 
 function onSessionComplete(data) {
   state.running = false;
+  state.runningMode = null;
   state.mode = 'completed';
   updateSendBtn();
   // Show session stats
@@ -1993,6 +2023,7 @@ function onWatchdogEvent(data, kind) {
 
 function onStopped() {
   state.running = false;
+  state.runningMode = null;
   state.clarifying = false;
   state.mode = 'idle';
   updateSendBtn();
@@ -2017,7 +2048,7 @@ const MODE_CONFIG = {
   car:      { placeholder: "Araç ara: 2020 BMW 3 serisi dizel otomatik 500k altı...", hint: 'Enter ile ara · arabam.com' },
   finance:  { placeholder: "Hisse/kripto/döviz sorgula: AAPL fiyatı, Bitcoin analizi...", hint: 'Enter ile sorgula · yfinance' },
   osint:    { placeholder: "Kullanıcı adı ara: @kullanici_adi veya 'doguayd kullanıcısını bul'...", hint: 'Enter ile ara · 3000+ site · maigret' },
-  music:    { placeholder: "Müzik tanımla: 30 saniyelik melankolik piyano parçası...", hint: 'Enter ile üret · ACE-Step · lokal GPU' },
+  music:    { placeholder: "Müzik tanımla: 30 saniyelik melankolik piyano parçası...", hint: 'Enter ile üret · MusicGen · lokal GPU' },
   browser:  { placeholder: "Atlas'a web görevi ver: n11'den mavi ayakkabı bul, iş başvurusu yap...", hint: 'Enter ile başlat · Atlas · Playwright Chrome' },
 };
 
@@ -2080,6 +2111,8 @@ function switchAppMode(mode) {
 
   inp.placeholder = cfg.placeholder;
   if (hintTxt) hintTxt.textContent = cfg.hint;
+  // Mod değişince input'u temizle (çapraz-mod kirlenme önlemi)
+  if (inp.value.trim()) { inp.value = ''; autoResize(inp); }
   updateSendBtn();
 }
 
@@ -2119,10 +2152,11 @@ function fillPropInput(text) {
 function sendPropertySearch(query) {
   if (!query) return;
   state.running = true;
+  state.runningMode = 'property';
   updateSendBtn();
 
   hidePropWelcome();
-  $('prop-grid').innerHTML = '';
+  $('prop-grid').innerHTML = `<div class="domain-query-header"><span class="domain-query-icon">👤</span><span class="domain-query-text">${escHtml(query)}</span></div>`;
   $('prop-summary').style.display = 'none';
   $('prop-summary').textContent = '';
   $('prop-count').textContent = '';
@@ -2147,6 +2181,7 @@ function onPropertyStatus(data) {
 
 function onPropertyDone(data) {
   state.running = false;
+  state.runningMode = null;
   updateSendBtn();
 
   // Update status bar
@@ -2176,17 +2211,23 @@ function onPropertyResults(data) {
 function renderPropertyResults(result) {
   if (!result || !result.listings) return;
   const grid = $('prop-grid');
+  // Sorgu başlığını koru
+  const existingQh = grid.querySelector('.domain-query-header');
+  const qhHtml = existingQh ? existingQh.outerHTML : '';
   grid.innerHTML = '';
 
   if (!result.listings.length) {
-    grid.innerHTML = '<div style="color:var(--text-mid);font-size:14px;padding:20px;">Uygun ilan bulunamadı. Farklı kriterlerle tekrar deneyin.</div>';
+    grid.innerHTML = qhHtml + '<div style="color:var(--text-mid);font-size:14px;padding:20px;">Uygun ilan bulunamadı. Farklı kriterlerle tekrar deneyin.</div>';
     return;
   }
 
   $('prop-count').textContent = `${result.listings.length} ilan bulundu`;
   if (result.search_url) {
-    $('prop-src').innerHTML = `Kaynak: <a href="${esc(result.search_url)}" target="_blank" class="prop-view-btn" style="font-size:12px;">sahibinden.com'da gör ↗</a>`;
+    $('prop-src').innerHTML = `Kaynak: <a href="${esc(result.search_url)}" target="_blank" class="prop-view-btn" style="font-size:12px;">emlakjet.com'da gör ↗</a>`;
   }
+
+  // Sorgu başlığını geri koy
+  if (qhHtml) grid.insertAdjacentHTML('beforeend', qhHtml);
 
   result.listings.forEach(l => {
     const card = document.createElement('div');
@@ -2344,8 +2385,10 @@ function addSessionStats(data) {
    SEND LOGIC
 ═══════════════════════════════════════════════════════ */
 function handleSend() {
-  if (state.running) { stopTask(); return; }
-  if (state.clarifying) return;
+  // Sadece aynı moddaki çalışan görevi durdur; farklı mod ise serbest bırak
+  const currentlyRunningThisMode = state.running && (state.runningMode === state.appMode);
+  if (currentlyRunningThisMode) { stopTask(); return; }
+  if (state.clarifying && state.appMode === 'code') return;
   const val = $('main-input').value.trim();
   if (!val && state.attachments.length === 0) return;
   $('main-input').value = '';
@@ -2405,7 +2448,15 @@ function showDomainWelcome(mode) {
   $('domain-content').style.display = 'none';
 }
 
-function showDomainContent(mode, statusText) {
+/** domain-results-body içindeki sorgu başlığını korur — handler'lar innerHTML'i sıfırlayınca kaybolmasın */
+function getDomainQueryHeader() {
+  const body = $('domain-results-body');
+  if (!body) return '';
+  const h = body.querySelector('.domain-query-header');
+  return h ? h.outerHTML : '';
+}
+
+function showDomainContent(mode, statusText, rawQuery) {
   ['car','finance','osint','music'].forEach(m => {
     const w = $('domain-welcome-' + m);
     if (w) w.style.display = 'none';
@@ -2421,7 +2472,10 @@ function showDomainContent(mode, statusText) {
     sd.classList.remove('done');
     st.textContent = statusText;
   }
-  $('domain-results-body').innerHTML = '';
+  // Kullanıcı sorgu başlığı
+  $('domain-results-body').innerHTML = rawQuery
+    ? `<div class="domain-query-header"><span class="domain-query-icon">👤</span><span class="domain-query-text">${escHtml(rawQuery)}</span></div>`
+    : '';
   $('domain-summary').style.display = 'none';
   $('domain-src-link').innerHTML = '';
 }
@@ -2447,42 +2501,47 @@ function fillAndSend(text) {
 function sendCarSearch(query) {
   if (!query) return;
   state.running = true;
+  state.runningMode = 'car';
   updateSendBtn();
   saveHistoryItem('car', query);
-  showDomainContent('car', `🚗 Turbo araç arıyor: "${query}"`);
+  showDomainContent('car', `🚗 Turbo araç arıyor...`, query);
   send({ type: 'car_search', query });
 }
 
 function sendFinanceAnalyze(query) {
   if (!query) return;
   state.running = true;
+  state.runningMode = 'finance';
   updateSendBtn();
   saveHistoryItem('finance', query);
-  showDomainContent('finance', `📈 Nova piyasa verilerini çekiyor: "${query}"`);
+  showDomainContent('finance', `📈 Nova piyasa verilerini çekiyor...`, query);
   send({ type: 'finance_analyze', query });
 }
 
 function sendOsintSearch(query) {
   if (!query) return;
   state.running = true;
+  state.runningMode = 'osint';
   updateSendBtn();
   saveHistoryItem('osint', query);
-  showDomainContent('osint', `🔍 Sigma 3000+ sitede tarıyor: "${query}"`);
+  showDomainContent('osint', `🔍 Sigma 3000+ sitede tarıyor...`, query);
   send({ type: 'osint_search', query });
 }
 
 function sendMusicGenerate(query) {
   if (!query) return;
   state.running = true;
+  state.runningMode = 'music';
   updateSendBtn();
   saveHistoryItem('music', query);
-  showDomainContent('music', `🎵 Ziya müzik üretiyor: "${query}"`);
+  showDomainContent('music', `🎵 Ziya müzik üretiyor...`, query);
   send({ type: 'music_generate', query });
 }
 
 function sendBrowserTask(query) {
   if (!query) return;
   state.running = true;
+  state.runningMode = 'browser';
   updateSendBtn();
   saveHistoryItem('browser', query);
   // Show active browser area
@@ -2522,7 +2581,8 @@ function autoResize(el) {
 
 function updateSendBtn() {
   const btn = $('send-btn');
-  if (state.running) {
+  const thisRunning = state.running && (state.runningMode === state.appMode);
+  if (thisRunning) {
     btn.classList.add('stop');
     btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="2" width="8" height="8" rx="1"/></svg>`;
     btn.title = 'Durdur';
@@ -2543,6 +2603,7 @@ function newChat() {
   // Reset state
   state.mode = 'idle';
   state.running = false;
+  state.runningMode = null;
   state.currentMsgId = null;
   state.reviewPhase = false;
   state.agentOutputs = {};
@@ -2963,26 +3024,48 @@ function openSettings() {
   loadAgentSettings();
 }
 
-let _agentModels = [];
+let _agentModelList = []; // [{provider, model, label}]
 function loadAgentSettings() {
   Promise.all([
     fetch('/settings/agents').then(r=>r.json()),
     fetch('/supervisor/models').then(r=>r.json()),
   ]).then(([cfg, modData]) => {
-    _agentModels = (modData.local || []).map(m => m.model);
+    const cloud = (modData.cloud || []);
+    const local = (modData.local || []);
+    _agentModelList = [
+      ...cloud.map(m => ({ provider: m.provider, model: m.model, label: `${m.icon || '🌐'} ${m.label || m.model}` })),
+      ...local.map(m => ({ provider: 'ollama',    model: m.model, label: `${m.icon || '💻'} ${m.label || m.model}` })),
+    ];
+
     const container = $('agent-settings-rows');
     if (!container) return;
     container.innerHTML = AGENTS.map(ag => {
       const c = cfg[ag.id] || { provider:'ollama', model:'', temperature:0.1 };
-      const opts = _agentModels.map(m =>
-        `<option value="${esc(m)}" ${m === c.model ? 'selected' : ''}>${esc(m)}</option>`
-      ).join('');
+      // Match by both provider+model or just model (backward compat)
+      const opts = _agentModelList.map(m => {
+        const val = `${m.provider}|${m.model}`;
+        const sel = (m.provider === c.provider && m.model === c.model) || m.model === c.model ? 'selected' : '';
+        return `<option value="${esc(val)}" ${sel}>${esc(m.label)}</option>`;
+      }).join('');
       const temp = parseFloat(c.temperature || 0.1);
+      // Group label
+      const hasCloud = cloud.length > 0;
+      const groupedOpts = hasCloud
+        ? `<optgroup label="☁️ Bulut">${_agentModelList.filter(m=>m.provider!=='ollama').map(m=>{
+            const val = `${m.provider}|${m.model}`;
+            const sel = (m.provider === c.provider && m.model === c.model) ? 'selected' : '';
+            return `<option value="${esc(val)}" ${sel}>${esc(m.label)}</option>`;
+          }).join('')}</optgroup><optgroup label="💻 Yerel">${_agentModelList.filter(m=>m.provider==='ollama').map(m=>{
+            const val = `${m.provider}|${m.model}`;
+            const sel = (m.provider === c.provider && m.model === c.model) || (m.provider==='ollama' && m.model===c.model) ? 'selected' : '';
+            return `<option value="${esc(val)}" ${sel}>${esc(m.label)}</option>`;
+          }).join('')}</optgroup>`
+        : opts;
       return `
         <div class="setting-row">
           <div class="setting-label"><span class="setting-agent-icon">${ag.icon}</span>${ag.name}</div>
           <div class="setting-control">
-            <select class="setting-select" id="agt-model-${ag.id}">${opts}</select>
+            <select class="setting-select" id="agt-model-${ag.id}">${groupedOpts}</select>
             <div class="setting-temp-row" style="margin-top:6px">
               <span style="font-size:11px;color:var(--text-dim);width:50px">Temp:</span>
               <input type="range" min="0" max="1.5" step="0.05" value="${temp}" id="agt-temp-${ag.id}"
@@ -3000,9 +3083,10 @@ function loadAgentSettings() {
 }
 
 function applyAgentConfig(agentId) {
-  const model = $('agt-model-' + agentId)?.value || '';
+  const raw   = $('agt-model-' + agentId)?.value || '|';
+  const [provider, model] = raw.split('|');
   const temp  = parseFloat($('agt-temp-' + agentId)?.value || '0.1');
-  send({ type: 'set_agent_config', agent: agentId, provider: 'ollama', model, temperature: temp });
+  send({ type: 'set_agent_config', agent: agentId, provider: provider || 'ollama', model: model || '', temperature: temp });
   const badge = $('agt-saved-' + agentId);
   if (badge) {
     badge.classList.add('visible');
@@ -3010,7 +3094,7 @@ function applyAgentConfig(agentId) {
   }
   // Update panel card
   const cardModel = $('ac-model-' + agentId);
-  if (cardModel) cardModel.textContent = model.split(':').pop();
+  if (cardModel) cardModel.textContent = (model || '').split(':').pop();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3123,7 +3207,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
    SIDEBAR TOGGLE
 ═══════════════════════════════════════════════════════ */
 function toggleSidebar() {
-  $('sidebar').classList.toggle('collapsed');
+  const sb = $('sidebar');
+  sb.classList.toggle('collapsed');
+  try { localStorage.setItem('atlas-sidebar-collapsed', sb.classList.contains('collapsed') ? '1' : '0'); } catch(_) {}
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3142,13 +3228,15 @@ function onDomainStatus(domain, data) {
 // ── Araç ──────────────────────────────────────────────
 function onCarDone(data) {
   state.running = false;
+  state.runningMode = null;
   updateSendBtn();
   doneDomainStatus();
 }
 
 function onCarResults(data) {
+  const qh = getDomainQueryHeader();
   if (!data.listings || !data.listings.length) {
-    $('domain-results-body').innerHTML = '<div style="color:var(--text-dim);padding:20px;text-align:center">Bu kriterlere uygun araç bulunamadı.</div>';
+    $('domain-results-body').innerHTML = qh + '<div style="color:var(--text-dim);padding:20px;text-align:center">Bu kriterlere uygun araç bulunamadı.</div>';
     return;
   }
   const summary = $('domain-summary');
@@ -3167,7 +3255,7 @@ function onCarResults(data) {
       </div>
     </div>`).join('');
 
-  $('domain-results-body').innerHTML = `
+  $('domain-results-body').innerHTML = qh + `
     <div class="car-grid">${cards}</div>`;
   if (data.search_url) {
     $('domain-src-link').innerHTML = `<a href="${escHtml(data.search_url)}" target="_blank" style="color:var(--turbo)">Tümünü arabam.com'da gör →</a>`;
@@ -3177,11 +3265,13 @@ function onCarResults(data) {
 // ── Finans ────────────────────────────────────────────
 function onFinanceDone(data) {
   state.running = false;
+  state.runningMode = null;
   updateSendBtn();
   doneDomainStatus();
 }
 
 function onFinanceResults(data) {
+  const qh = getDomainQueryHeader();
   const summary = $('domain-summary');
   if (data.summary && summary) {
     summary.textContent = data.summary;
@@ -3189,7 +3279,7 @@ function onFinanceResults(data) {
   }
   const items = (data.data || []);
   if (!items.length) {
-    $('domain-results-body').innerHTML = '<div style="color:var(--text-dim);padding:20px;text-align:center">Veri alınamadı.</div>';
+    $('domain-results-body').innerHTML = qh + '<div style="color:var(--text-dim);padding:20px;text-align:center">Veri alınamadı.</div>';
     return;
   }
   const rows = items.map(d => {
@@ -3213,17 +3303,19 @@ function onFinanceResults(data) {
         </div>
       </div>`;
   }).join('');
-  $('domain-results-body').innerHTML = `<div class="finance-grid">${rows}</div>`;
+  $('domain-results-body').innerHTML = qh + `<div class="finance-grid">${rows}</div>`;
 }
 
 // ── OSINT ─────────────────────────────────────────────
 function onOsintDone(data) {
   state.running = false;
+  state.runningMode = null;
   updateSendBtn();
   doneDomainStatus();
 }
 
 function onOsintResults(data) {
+  const qh = getDomainQueryHeader();
   const summary = $('domain-summary');
   if (data.summary && summary) {
     summary.textContent = data.summary;
@@ -3241,7 +3333,7 @@ function onOsintResults(data) {
       ${s.url ? `<a class="osint-link" href="${escHtml(s.url)}" target="_blank">Aç →</a>` : ''}
     </div>`).join('');
 
-  $('domain-results-body').innerHTML = `
+  $('domain-results-body').innerHTML = qh + `
     <div class="domain-results-container">
       ${header}
       <div class="osint-list">
@@ -3253,11 +3345,13 @@ function onOsintResults(data) {
 // ── Müzik ─────────────────────────────────────────────
 function onMusicDone(data) {
   state.running = false;
+  state.runningMode = null;
   updateSendBtn();
   doneDomainStatus();
 
+  const qh = getDomainQueryHeader();
   if (data.success && data.path) {
-    $('domain-results-body').innerHTML = `
+    $('domain-results-body').innerHTML = qh + `
       <div class="domain-results-container" style="padding:20px">
         <div style="color:var(--ziya);font-weight:600;font-size:15px;margin-bottom:12px">🎵 Müzik üretildi!</div>
         ${data.tags ? `<div style="font-size:12px;color:var(--text-dim);margin-bottom:12px">${escHtml(data.tags)}</div>` : ''}
@@ -3267,7 +3361,7 @@ function onMusicDone(data) {
         <div style="font-size:11px;color:var(--text-dim);margin-top:8px">📁 ${escHtml(data.path||'')}</div>
       </div>`;
   } else {
-    $('domain-results-body').innerHTML = `<div style="color:var(--text-soft);padding:20px;font-size:13px">${escHtml(data.summary||'Müzik üretilemedi.')}</div>`;
+    $('domain-results-body').innerHTML = qh + `<div style="color:var(--text-soft);padding:20px;font-size:13px">${escHtml(data.summary||'Müzik üretilemedi.')}</div>`;
   }
 }
 
@@ -3290,6 +3384,7 @@ function onTaskClassified(data) {
   const cat  = data.category || 'code';
   const meta = CAT_META[cat] || CAT_META.code;
   state.running = true;
+  state.runningMode = cat;
   updateSendBtn();
 
   // Show route banner in messages inner (code area) if visible
@@ -3446,6 +3541,7 @@ function onBrowserCaptcha(data) {
 
 function onBrowserDone(data) {
   state.running = false;
+  state.runningMode = null;
   updateSendBtn();
   $('browser-progress-fill').style.width = '100%';
   $('browser-step-label').textContent = '✅ ' + (data.summary || 'Görev tamamlandı');
@@ -3468,6 +3564,7 @@ function onBrowserDone(data) {
 
 function onBrowserError(data) {
   state.running = false;
+  state.runningMode = null;
   updateSendBtn();
   $('browser-step-label').textContent = '❌ Hata: ' + (data.message || '');
 }
@@ -3620,6 +3717,13 @@ document.addEventListener('paste', async (e) => {
 /* ═══════════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════════ */
+// Restore sidebar collapse state
+try {
+  if (localStorage.getItem('atlas-sidebar-collapsed') === '1') {
+    $('sidebar').classList.add('collapsed');
+  }
+} catch(_) {}
+
 connect();
 refreshAgentPanel('idle');
 renderHistory();

@@ -3,6 +3,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# HuggingFace — Windows'ta symlink desteği olmadığında çıkan uyarıyı sustur
+# (cache hâlâ çalışır, sadece symlink yerine kopyalama kullanır)
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 # ─── API Anahtarları ────────────────────────────────────────────────────────
 GOOGLE_API_KEY      = os.getenv("GOOGLE_API_KEY", "")
 ANTHROPIC_API_KEY   = os.getenv("ANTHROPIC_API_KEY", "")
@@ -150,7 +154,7 @@ MODELS: dict[str, dict] = {
         "provider":    "gemini",
         "model":       "gemini-2.0-flash",
         "temperature": 0.7,
-        "description": "Müzik üretimi (ACE-Step)",
+        "description": "Müzik üretimi (MusicGen)",
         "persona":     "Ziya",
         "color":       "#f472b6",  # pembe
     },

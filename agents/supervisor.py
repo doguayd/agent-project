@@ -516,6 +516,40 @@ Tasks in the same parallel_group with no shared dependencies run CONCURRENTLY.""
         ):
             return "music"
 
+        # Hava durumu
+        _weather_kw = ["hava durumu", "hava nasıl", "bugün hava", "yarın hava",
+                       "sıcaklık", "yağmur", "kar yağacak", "weather", "temperature",
+                       "forecast", "nem", "rüzgar hızı"]
+        if any(k in lower for k in _weather_kw):
+            return "weather"
+
+        # Sistem bilgisi
+        _sysinfo_kw = ["ram kullanımı", "cpu kullanımı", "disk doluluk", "pil durumu",
+                       "batarya", "sistem bilgisi", "bilgisayar hızı", "ip adresim",
+                       "wifi bağlantı", "gpu sıcaklığı", "system info", "battery",
+                       "memory usage", "disk usage", "cpu usage"]
+        if any(k in lower for k in _sysinfo_kw):
+            return "sysinfo"
+
+        # Uygulama aç
+        _openapp_kw = ["aç ", "başlat", "çalıştır", "open ", "launch ", "start "]
+        _app_names  = ["spotify", "chrome", "firefox", "vscode", "notepad", "discord",
+                       "whatsapp", "telegram", "excel", "word", "powerpoint", "vlc",
+                       "terminal", "explorer", "hesap makinesi", "calculator"]
+        if any(k in lower for k in _openapp_kw) and any(a in lower for a in _app_names):
+            return "open_app"
+
+        # WhatsApp mesaj
+        _wa_kw = ["whatsapp", "mesaj gönder", "mesaj yaz", "send message", "wp mesaj"]
+        if any(k in lower for k in _wa_kw):
+            return "whatsapp"
+
+        # YouTube istatistik
+        _yt_kw = ["youtube kanal", "youtube istatistik", "kanal analiz", "abone sayısı",
+                  "youtube stats", "channel stats", "youtube rapor"]
+        if any(k in lower for k in _yt_kw):
+            return "youtube"
+
         # Kod (default)
         _code_kw = ["yaz", "kod", "uygulama", "script", "api", "web site",
                     "python", "javascript", "html", "css", "flask", "django",
@@ -537,13 +571,20 @@ Categories:
 - osint: username search, person search across social media
 - music: music generation, composing
 - browser: anything requiring web browsing, visiting websites, clicking, filling forms, shopping, job applications
+- weather: weather conditions, forecast, temperature
+- sysinfo: system info, CPU/RAM/disk/battery/GPU status
+- open_app: opening or launching a desktop application
+- whatsapp: sending WhatsApp messages
+- youtube: YouTube channel statistics and reports
 
-Reply with ONLY one word: code, property, car, finance, osint, music, or browser"""
+Reply with ONLY one word."""
 
         try:
             raw = await self.llm.generate([{"role": "user", "content": prompt}])
             raw = _strip_think_blocks(raw).strip().lower().split()[0]
-            if raw in {"code", "property", "car", "finance", "osint", "music", "browser"}:
+            valid = {"code", "property", "car", "finance", "osint", "music", "browser",
+                     "weather", "sysinfo", "open_app", "whatsapp", "youtube"}
+            if raw in valid:
                 return raw
         except Exception:
             pass

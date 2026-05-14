@@ -508,6 +508,13 @@ async def ws_endpoint(websocket: WebSocket):
 
                     async def _auto_run(g: str, c: str):
                         """Görevi otomatik sınıflandır ve doğru ajana yönlendir."""
+                        try:
+                            from core.user_memory import format_memory_for_prompt
+                            mem_ctx = format_memory_for_prompt()
+                            if mem_ctx:
+                                c = (mem_ctx + "\n\n" + c).strip() if c else mem_ctx
+                        except Exception:
+                            pass
                         cat = await orch.supervisor.classify_task(g)
                         logger.info(f"Auto-route: '{g[:60]}' → {cat}")
                         await emit({"type": "task.classified", "ts": time.time(),
@@ -540,6 +547,54 @@ async def ws_endpoint(websocket: WebSocket):
                             except TypeError:
                                 r = await music_agt.create(g, emit=emit)
                             await emit({"type": "music.results", "ts": time.time(), "data": r})
+                        elif cat == "weather":
+                            from tools.weather_tool import get_weather_summary
+                            import re as _re
+                            loc_m = _re.search(r"(?:için|in|at|hava[sı]*)\s+([A-ZÇĞİÖŞÜa-zçğışöüa-z]+)", g)
+                            loc = loc_m.group(1) if loc_m else None
+                            loop = asyncio.get_running_loop()
+                            result = await loop.run_in_executor(None, lambda: get_weather_summary(loc))
+                            await emit({"type": "weather.result", "ts": time.time(), "data": {"summary": result}})
+
+                        elif cat == "sysinfo":
+                            from tools.sys_info_tool import sys_info
+                            lower_g = g.lower()
+                            q = "all"
+                            if any(w in lower_g for w in ["cpu", "işlemci"]): q = "cpu"
+                            elif any(w in lower_g for w in ["ram", "bellek", "memory"]): q = "ram"
+                            elif any(w in lower_g for w in ["disk", "depolama"]): q = "disk"
+                            elif any(w in lower_g for w in ["pil", "batarya", "battery"]): q = "battery"
+                            elif any(w in lower_g for w in ["gpu", "ekran kartı", "vram"]): q = "gpu"
+                            elif any(w in lower_g for w in ["ağ", "network", "ip", "wifi"]): q = "network"
+                            loop = asyncio.get_running_loop()
+                            result = await loop.run_in_executor(None, lambda: sys_info(q))
+                            await emit({"type": "sysinfo.result", "ts": time.time(), "data": {"summary": result}})
+
+                        elif cat == "open_app":
+                            from tools.open_app_tool import open_app
+                            import re as _re2
+                            app_m = _re2.search(
+                                r"(?:aç|başlat|çalıştır|open|launch|start)\s+(.+?)(?:\s*$|\s+lütfen|\s+for)",
+                                g, _re2.IGNORECASE
+                            )
+                            app_name = app_m.group(1).strip() if app_m else g
+                            loop = asyncio.get_running_loop()
+                            result = await loop.run_in_executor(None, lambda: open_app(app_name))
+                            await emit({"type": "app.opened", "ts": time.time(), "data": {"result": result}})
+
+                        elif cat == "whatsapp":
+                            await emit({"type": "whatsapp.needs_ui", "ts": time.time(),
+                                        "data": {"message": "WhatsApp mesajı için lütfen Mesaj panelini kullanın veya telefon numarası ve mesaj içeriğini belirtin."}})
+
+                        elif cat == "youtube":
+                            from tools.youtube_tools import get_youtube_channel_report
+                            import re as _re3
+                            handle_m = _re3.search(r"(@[\w.]+|UC[\w-]{22})", g)
+                            handle = handle_m.group(1) if handle_m else g
+                            loop = asyncio.get_running_loop()
+                            result = await loop.run_in_executor(None, lambda: get_youtube_channel_report(g, handle))
+                            await emit({"type": "youtube.result", "ts": time.time(), "data": {"summary": result}})
+
                         elif cat == "browser":
                             async def _approval(action_desc: str, screenshot_b64: str) -> bool:
                                 fut = asyncio.get_event_loop().create_future()
@@ -677,6 +732,13 @@ async def ws_endpoint(websocket: WebSocket):
                     })
                     # Auto-route follow-up messages too
                     async def _followup_run(g: str, c: str):
+                        try:
+                            from core.user_memory import format_memory_for_prompt
+                            mem_ctx = format_memory_for_prompt()
+                            if mem_ctx:
+                                c = (mem_ctx + "\n\n" + c).strip() if c else mem_ctx
+                        except Exception:
+                            pass
                         cat = await orch.supervisor.classify_task(g)
                         await emit({"type": "task.classified", "ts": time.time(),
                                     "data": {"category": cat, "goal": g}})
@@ -793,6 +855,95 @@ async def ws_endpoint(websocket: WebSocket):
                             "type": "error",
                             "data": {"message": "Bekleyen bir clarification yok."},
                         })
+
+                case "weather_query":
+                    location = msg.get("location", "").strip() or None
+                    async def _run_weather(loc):
+                        from tools.weather_tool import get_weather_summary
+                        loop = asyncio.get_running_loop()
+                        result = await loop.run_in_executor(None, lambda: get_weather_summary(loc))
+                        await emit({"type": "weather.result", "ts": time.time(), "data": {"summary": result}})
+                    active_task = asyncio.create_task(_run_weather(location))
+
+                case "sys_info_query":
+                    query = msg.get("query", "all").strip() or "all"
+                    async def _run_sysinfo(q):
+                        from tools.sys_info_tool import sys_info
+                        loop = asyncio.get_running_loop()
+                        result = await loop.run_in_executor(None, lambda: sys_info(q))
+                        await emit({"type": "sysinfo.result", "ts": time.time(), "data": {"summary": result}})
+                    active_task = asyncio.create_task(_run_sysinfo(query))
+
+                case "open_app":
+                    app_name = msg.get("app", "").strip()
+                    if app_name:
+                        async def _run_open_app(name):
+                            from tools.open_app_tool import open_app
+                            loop = asyncio.get_running_loop()
+                            result = await loop.run_in_executor(None, lambda: open_app(name))
+                            await emit({"type": "app.opened", "ts": time.time(), "data": {"result": result}})
+                        active_task = asyncio.create_task(_run_open_app(app_name))
+
+                case "whatsapp_send":
+                    wa_msg   = msg.get("message", "").strip()
+                    wa_phone = msg.get("phone", "").strip()
+                    wa_name  = msg.get("name", "").strip()
+                    wa_send  = bool(msg.get("send_now", False))
+                    if wa_msg:
+                        async def _run_wa(m, p, n, s):
+                            from tools.whatsapp_tool import send_whatsapp_message
+                            loop = asyncio.get_running_loop()
+                            result = await loop.run_in_executor(None, lambda: send_whatsapp_message(m, p, n, s))
+                            await emit({"type": "whatsapp.result", "ts": time.time(), "data": {"result": result}})
+                        active_task = asyncio.create_task(_run_wa(wa_msg, wa_phone, wa_name, wa_send))
+
+                case "whatsapp_contact_save":
+                    wc_name    = msg.get("name", "").strip()
+                    wc_phone   = msg.get("phone", "").strip()
+                    wc_aliases = msg.get("aliases", "").strip()
+                    if wc_name and wc_phone:
+                        async def _run_wa_save(n, p, a):
+                            from tools.whatsapp_tool import save_whatsapp_contact
+                            loop = asyncio.get_running_loop()
+                            result = await loop.run_in_executor(None, lambda: save_whatsapp_contact(n, p, a))
+                            await emit({"type": "whatsapp.contact_saved", "ts": time.time(), "data": {"result": result}})
+                        active_task = asyncio.create_task(_run_wa_save(wc_name, wc_phone, wc_aliases))
+
+                case "youtube_stats":
+                    yt_handle = msg.get("handle", "").strip()
+                    yt_query  = msg.get("query", "overview").strip() or "overview"
+                    if yt_handle:
+                        async def _run_yt(h, q):
+                            from tools.youtube_tools import get_youtube_channel_report
+                            loop = asyncio.get_running_loop()
+                            result = await loop.run_in_executor(None, lambda: get_youtube_channel_report(q, h))
+                            await emit({"type": "youtube.result", "ts": time.time(), "data": {"summary": result}})
+                        active_task = asyncio.create_task(_run_yt(yt_handle, yt_query))
+
+                case "memory_get":
+                    from core.user_memory import get_memory_summary
+                    summary = get_memory_summary()
+                    await websocket.send_json({"type": "memory.summary", "ts": time.time(), "data": summary})
+
+                case "memory_save":
+                    mem_cat = msg.get("category", "notes").strip()
+                    mem_key = msg.get("key", "").strip()
+                    mem_val = msg.get("value", "").strip()
+                    if mem_key and mem_val:
+                        from core.user_memory import save_entry
+                        save_entry(mem_cat, mem_key, mem_val)
+                        await websocket.send_json({"type": "memory.saved", "ts": time.time(),
+                                                   "data": {"category": mem_cat, "key": mem_key}})
+
+                case "memory_delete":
+                    mem_cat  = msg.get("category", "").strip()
+                    mem_key  = msg.get("key", "").strip()
+                    mem_text = msg.get("text", "").strip()
+                    if mem_cat:
+                        from core.user_memory import delete_memory
+                        delete_memory(mem_cat, mem_key or None, mem_text or None)
+                        await websocket.send_json({"type": "memory.deleted", "ts": time.time(),
+                                                   "data": {"category": mem_cat}})
 
                 case "ping":
                     await websocket.send_json({"type": "pong", "data": {}})

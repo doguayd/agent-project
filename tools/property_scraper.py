@@ -190,12 +190,22 @@ def _parse_query(query: str) -> tuple[str, str, str, dict]:
     """
     q = query.lower().strip()
 
-    # Kategori
-    category = "kiralik-konut"
-    for kw, cat in CATEGORY_MAP.items():
-        if kw in q:
-            category = cat
-            break
+    # Kategori — önce satılık/kiralık ana sözcüğü tespit et
+    category = "kiralik-konut"   # varsayılan
+    is_satilik = any(kw in q for kw in ("satılık", "satilik", "satmak", "satışa"))
+    is_kiralik = any(kw in q for kw in ("kiralık", "kiralik", "kira", "kiralamak"))
+    is_isyeri  = any(kw in q for kw in ("ofis", "iş yeri", "işyeri", "isyeri", "dükkan", "depo", "ticari"))
+
+    if is_satilik:
+        category = "satilik-isyeri" if is_isyeri else "satilik-konut"
+    elif is_kiralik:
+        category = "kiralik-isyeri" if is_isyeri else "kiralik-konut"
+    else:
+        # Eski anahtar kelime eşleştirmesine geri dön
+        for kw, cat in CATEGORY_MAP.items():
+            if kw in q:
+                category = cat
+                break
 
     # Şehir
     city_slug = "istanbul"   # varsayılan

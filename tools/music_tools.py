@@ -124,18 +124,37 @@ def _get_musicgen(model_name: str = "facebook/musicgen-medium"):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         dtype  = torch.float16 if device == "cuda" else torch.float32
 
-        print(f"[MusicGen] Model yükleniyor: {model_name} ({device})")
+        print(f"[MusicGen] Model yükleniyor: {model_name} ({device}, dtype={dtype})")
 
         processor = AutoProcessor.from_pretrained(model_name)
         model     = MusicgenForConditionalGeneration.from_pretrained(
             model_name,
-            torch_dtype = dtype,
-        ).to(device)
+            dtype=dtype,            # torch_dtype deprecated → dtype kullan
+            use_safetensors=True,   # model.safetensors kullan, pytorch_model.bin indirme
+            low_cpu_mem_usage=True,
+        )
+        model = model.to(device)
+        model.eval()
 
         _model_cache[model_name] = (processor, model, device)
-        print(f"[MusicGen] Hazır! ({device.upper()})")
+        print(f"[MusicGen] Hazır! ({device.upper()}, VRAM kullanımı: "
+              f"{torch.cuda.memory_allocated()/1e9:.1f}GB)" if device == "cuda" else
+              f"[MusicGen] Hazır! (CPU)")
         return processor, model, device
 
+    except torch.cuda.OutOfMemoryError:
+        # VRAM yetersiz — CPU'ya düş
+        print(f"[MusicGen] CUDA OOM! CPU moduna geçiliyor...")
+        import torch
+        from transformers import AutoProcessor, MusicgenForConditionalGeneration
+        processor = AutoProcessor.from_pretrained(model_name)
+        model = MusicgenForConditionalGeneration.from_pretrained(
+            model_name, dtype=torch.float32, use_safetensors=True, low_cpu_mem_usage=True
+        )
+        model.eval()
+        _model_cache[model_name] = (processor, model, "cpu")
+        print("[MusicGen] CPU modunda hazır (yavaş çalışacak)")
+        return processor, model, "cpu"
     except Exception as e:
         raise RuntimeError(f"MusicGen yüklenemedi: {e}") from e
 
@@ -159,41 +178,56 @@ def _run_musicgen(
     import scipy.io.wavfile
     import numpy as np
 
+    print(f"[MusicGen] _run_musicgen başlıyor: model={model_name}, tags='{tags[:80]}', dur={duration_s}s")
+
     processor, model, device = _get_musicgen(model_name)
 
     # Prompt hazırla
     inputs = processor(
-        text        = [tags],
-        padding     = True,
+        text           = [tags],
+        padding        = True,
         return_tensors = "pt",
     ).to(device)
 
     max_tokens = _tokens_for_duration(duration_s)
 
-    print(f"[MusicGen] Üretiliyor: '{tags[:80]}' — {duration_s}s ({max_tokens} token)")
+    print(f"[MusicGen] Üretiliyor: '{tags[:80]}' — {duration_s}s ({max_tokens} token, device={device})")
 
-    with torch.inference_mode():
-        audio_values = model.generate(
-            **inputs,
-            max_new_tokens       = max_tokens,
-            do_sample            = True,
-            guidance_scale       = 3.0,
-            temperature          = 1.0,
-        )
+    try:
+        with torch.inference_mode():
+            audio_values = model.generate(
+                **inputs,
+                max_new_tokens = max_tokens,
+                do_sample      = True,
+                guidance_scale = 3.0,
+                temperature    = 1.0,
+            )
+    except torch.cuda.OutOfMemoryError:
+        # CUDA OOM — önbelleği temizle ve CPU'da tekrar dene
+        print("[MusicGen] CUDA OOM hatası! Model cache temizleniyor...")
+        torch.cuda.empty_cache()
+        if model_name in _model_cache:
+            del _model_cache[model_name]
+        raise RuntimeError("CUDA bellek yetersiz. Sunucu yeniden başlatın.")
+
+    print(f"[MusicGen] generate() tamamlandı, audio_values shape: {audio_values.shape}")
 
     # Kaydet
     sampling_rate = model.config.audio_encoder.sampling_rate
     audio_np      = audio_values[0, 0].cpu().float().numpy()
 
+    print(f"[MusicGen] audio_np shape={audio_np.shape}, min={audio_np.min():.3f}, max={audio_np.max():.3f}")
+
     # Normalize
-    if audio_np.max() > 1.0 or audio_np.min() < -1.0:
-        audio_np = audio_np / max(abs(audio_np.max()), abs(audio_np.min()))
+    peak = max(abs(float(audio_np.max())), abs(float(audio_np.min())))
+    if peak > 1e-6:
+        audio_np = audio_np / peak * 0.95
 
     # int16'ya çevir (WAV için)
     audio_int16 = (audio_np * 32767).astype(np.int16)
 
     scipy.io.wavfile.write(output_path, rate=sampling_rate, data=audio_int16)
-    print(f"[MusicGen] Kaydedildi: {output_path} ({sampling_rate}Hz)")
+    print(f"[MusicGen] Kaydedildi: {output_path} ({sampling_rate}Hz, {len(audio_int16)} samples)")
     return output_path
 
 
@@ -234,7 +268,7 @@ async def generate_music(
 
     try:
         # Executor'da çalıştır — event loop'u bloklamaz
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         await asyncio.wait_for(
             loop.run_in_executor(
                 None,

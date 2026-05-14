@@ -35,32 +35,70 @@ class OsintAgent:
             temperature=0.2,
         )
 
+    # Türkçe eylem/sıfat kelimeleri — kullanıcı adı DEĞİL
+    _STOP_WORDS = {
+        "bul", "ara", "tara", "araştır", "bana", "için", "bu", "bir",
+        "kullanıcı", "kullanıcısını", "kullanıcıadı", "kullanıcıadını",
+        "profil", "profilini", "hesap", "hesabını", "hesabı",
+        "username", "user", "search", "find", "lookup",
+        "sitede", "platformda", "sosyal", "medya", "ağda",
+        "kim", "kimdir", "hakkında", "ile", "ve", "veya",
+        "lütfen", "acil", "hızlı", "tüm",
+    }
+
     def _extract_usernames(self, query: str) -> list[str]:
         """Sorgudan kullanıcı adı(larını) çıkar."""
-        # @ ile başlayanlar
+        # @ ile başlayanlar: @elonmusk
         at_names = re.findall(r"@(\w+)", query)
         if at_names:
             return at_names
 
-        # Tırnak içindekiler
+        # Tırnak içindekiler: "elonmusk" veya 'elonmusk'
         quoted = re.findall(r'["\']([^"\']+)["\']', query)
         if quoted:
             return quoted
 
-        # "kullanıcı adı: xxx", "username: xxx", "bul: xxx"
+        # "kullanıcı adı: xxx", "username: xxx", "bul: xxx" — iki nokta sonrası
         kw_match = re.search(
-            r"(?:kullanıcı\s*adı|username|user|bul|ara|tara)[:\s]+(\S+)",
+            r"(?:kullanıcı\s*adı|username|user)[:\s]+(\S+)",
             query, re.IGNORECASE,
         )
         if kw_match:
-            return [kw_match.group(1).strip(".,")]
+            candidate = kw_match.group(1).strip(".,")
+            if candidate.lower() not in self._STOP_WORDS:
+                return [candidate]
 
-        # Son kelimeyi dene
-        words = query.strip().split()
-        if words:
-            last = words[-1].strip(".,!?")
-            if len(last) >= 3 and last.isalnum():
-                return [last]
+        # "[username] kullanıcısını bul/ara" veya "bul [username]" deseni
+        # Örnek: "elonmusk kullanıcısını bul" → elonmusk
+        prefix_match = re.search(
+            r"^(\w{3,})\s+(?:kullanıcı|kullanıcısını|profil|hesap)",
+            query.strip(), re.IGNORECASE,
+        )
+        if prefix_match:
+            candidate = prefix_match.group(1)
+            if candidate.lower() not in self._STOP_WORDS:
+                return [candidate]
+
+        # "bul elonmusk" veya "ara elonmusk" — eylem sonrası kullanıcı adı
+        suffix_match = re.search(
+            r"(?:bul|ara|tara|araştır|find|lookup)\s+(\w{3,})",
+            query, re.IGNORECASE,
+        )
+        if suffix_match:
+            candidate = suffix_match.group(1)
+            if candidate.lower() not in self._STOP_WORDS:
+                return [candidate]
+
+        # Stop-word olmayan kelimeleri bul, en uzun olanı al
+        words = re.findall(r"\b\w{3,}\b", query)
+        candidates = [
+            w for w in words
+            if w.lower() not in self._STOP_WORDS and re.match(r"^[a-zA-Z0-9_.\-]+$", w)
+        ]
+        if candidates:
+            # En uzun alphanumeric kelimeyi kullanıcı adı say
+            candidates.sort(key=len, reverse=True)
+            return [candidates[0]]
 
         return []
 
